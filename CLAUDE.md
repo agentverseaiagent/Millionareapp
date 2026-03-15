@@ -11,7 +11,7 @@ This project uses GitHub for version control. This is a strict requirement:
 - Do not batch unrelated changes into one commit
 - Do not commit partial, broken, or half-finished work unless explicitly instructed
 
-Repository: https://github.com/agentverseaiagent/Millionareapp
+Repository: https://github.com/agentverseaiagent/garagetwits
 
 ## App Identity
 
@@ -109,4 +109,4 @@ After each completed stable unit of work:
 - Platform: Windows 11
 - Shell: Git Bash (bash syntax, forward slashes)
 - GitHub CLI (`gh`) is installed and authenticated as `agentverseaiagent`
-- Git remote: `origin` → `https://github.com/agentverseaiagent/Millionareapp`
+- Git remote: `origin` → `https://github.com/agentverseaiagent/garagetwits`
