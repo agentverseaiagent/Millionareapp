@@ -83,6 +83,11 @@ export async function createComment(postId: string, body: string): Promise<PostC
   return data as PostComment;
 }
 
+export async function deletePost(postId: string): Promise<void> {
+  const { error } = await supabase.from('posts').delete().eq('id', postId);
+  if (error) throw error;
+}
+
 export async function createPost(input: CreatePostInput): Promise<Post> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');

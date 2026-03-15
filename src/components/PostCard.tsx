@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import type { Post, PostCategory } from '../features/posts/types';
 import { CATEGORY_LABELS } from '../features/posts/types';
@@ -14,6 +15,7 @@ const C = {
 };
 
 const CATEGORY_STYLE: Record<PostCategory, { bg: string; text: string }> = {
+  general:       { bg: '#F3F4F6', text: '#6B7280' },
   price_paid:    { bg: '#ECFDF5', text: '#059669' },
   lease_finance: { bg: '#EFF6FF', text: '#2563EB' },
   issue:         { bg: '#FEF2F2', text: '#DC2626' },
@@ -37,14 +39,24 @@ function relativeTime(dateStr: string): string {
 interface Props {
   post: Post;
   showModel?: boolean;
+  currentUserId?: string;
+  onDelete?: (postId: string) => void;
 }
 
-export function PostCard({ post, showModel = true }: Props) {
+export function PostCard({ post, showModel = true, currentUserId, onDelete }: Props) {
   const router = useRouter();
   const makeName = post.vehicle_model?.vehicle_makes?.name;
   const modelName = post.vehicle_model?.name;
   const modelDisplay = makeName && modelName ? `${makeName} ${modelName}` : null;
   const catStyle = post.category ? CATEGORY_STYLE[post.category] : null;
+  const isOwner = !!currentUserId && currentUserId === post.author_id;
+
+  const handleDelete = () => {
+    Alert.alert('Delete post', 'Are you sure you want to delete this post?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => onDelete?.(post.id) },
+    ]);
+  };
 
   return (
     <TouchableOpacity
@@ -52,7 +64,7 @@ export function PostCard({ post, showModel = true }: Props) {
       onPress={() => router.push(`/post/${post.id}`)}
       activeOpacity={0.75}
     >
-      {/* Vehicle tag + time row */}
+      {/* Vehicle tag + time + delete row */}
       <View style={styles.topRow}>
         {showModel && modelDisplay ? (
           <TouchableOpacity
@@ -65,7 +77,18 @@ export function PostCard({ post, showModel = true }: Props) {
         ) : (
           <View />
         )}
-        <Text style={styles.time}>{relativeTime(post.created_at)}</Text>
+        <View style={styles.topRight}>
+          <Text style={styles.time}>{relativeTime(post.created_at)}</Text>
+          {isOwner && (
+            <TouchableOpacity
+              onPress={e => { e.stopPropagation?.(); handleDelete(); }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={styles.deleteBtn}
+            >
+              <Ionicons name="trash-outline" size={15} color="#AAAAAA" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Body */}
@@ -111,9 +134,17 @@ const styles = StyleSheet.create({
     color: C.accent,
     letterSpacing: 0.2,
   },
+  topRight: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 8,
+  },
   time: {
     fontSize: 12,
     color: C.textFaint,
+  },
+  deleteBtn: {
+    padding: 2,
   },
   body: {
     fontSize: 15,

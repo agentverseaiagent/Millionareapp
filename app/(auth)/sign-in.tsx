@@ -62,7 +62,7 @@ export default function SignInScreen() {
     >
       <View style={styles.header}>
         <Text style={styles.appName}>Garagetwits</Text>
-        <Text style={styles.appTagline}>Community for car enthusiasts</Text>
+        <Text style={styles.appTagline}>Real owner insight, model by model</Text>
       </View>
 
       <View style={styles.form}>

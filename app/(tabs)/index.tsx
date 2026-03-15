@@ -10,7 +10,9 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useGlobalFeed, useFollowingFeed } from '../../src/features/posts/hooks';
+import { deletePost } from '../../src/features/posts/api';
 import { PostCard } from '../../src/components/PostCard';
+import { useSession } from '../../src/features/auth/hooks';
 
 const C = {
   bg: '#FFFFFF',
@@ -25,6 +27,8 @@ type FeedMode = 'following' | 'all';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { session } = useSession();
+  const currentUserId = session?.user?.id;
   const [mode, setMode] = useState<FeedMode>('following');
   const globalFeed = useGlobalFeed();
   const followingFeed = useFollowingFeed();
@@ -32,6 +36,12 @@ export default function HomeScreen() {
   const active = mode === 'all' ? globalFeed : followingFeed;
 
   const handleRefresh = useCallback(() => {
+    globalFeed.refresh();
+    followingFeed.refresh();
+  }, [globalFeed, followingFeed]);
+
+  const handleDelete = useCallback(async (postId: string) => {
+    await deletePost(postId);
     globalFeed.refresh();
     followingFeed.refresh();
   }, [globalFeed, followingFeed]);
@@ -100,7 +110,14 @@ export default function HomeScreen() {
       <FlatList
         data={active.posts}
         keyExtractor={item => item.id}
-        renderItem={({ item }) => <PostCard post={item} showModel />}
+        renderItem={({ item }) => (
+            <PostCard
+              post={item}
+              showModel
+              currentUserId={currentUserId}
+              onDelete={handleDelete}
+            />
+          )}
         ListHeaderComponent={toggle}
         ListEmptyComponent={emptyComponent}
         contentContainerStyle={active.posts.length === 0 ? styles.emptyList : undefined}
