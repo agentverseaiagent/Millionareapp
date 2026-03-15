@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  View,
   Text,
   TextInput,
   TouchableOpacity,
@@ -11,6 +10,20 @@ import {
 } from 'react-native';
 import { Link } from 'expo-router';
 import { signUp } from '../../src/features/auth/api';
+
+function parseSignUpError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes('user already registered') || m.includes('already been registered')) {
+    return 'An account with this email already exists. Sign in instead.';
+  }
+  if (m.includes('password should be at least') || m.includes('password must be at least')) {
+    return 'Password must be at least 6 characters.';
+  }
+  if (m.includes('unable to validate email') || m.includes('invalid email')) {
+    return 'Please enter a valid email address.';
+  }
+  return message;
+}
 
 export default function SignUpScreen() {
   const [email, setEmail] = useState('');
@@ -24,10 +37,10 @@ export default function SignUpScreen() {
     setMessage(null);
     setLoading(true);
     try {
-      await signUp(email, password);
+      await signUp(email.trim(), password);
       setMessage('Check your email to confirm your account.');
     } catch (err: any) {
-      setError(err.message);
+      setError(parseSignUpError(err.message ?? 'Something went wrong.'));
     } finally {
       setLoading(false);
     }

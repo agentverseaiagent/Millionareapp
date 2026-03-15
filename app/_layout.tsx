@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as Linking from 'expo-linking';
@@ -9,8 +9,10 @@ export default function RootLayout() {
   const { session, loading } = useSession();
   const segments = useSegments();
   const router = useRouter();
+  // Prevents the auth redirect from firing when we navigate to reset-password
+  const skipAuthRedirect = useRef(false);
 
-  // Handle email confirmation deep links
+  // Handle email confirmation and password reset deep links
   useEffect(() => {
     const handleUrl = async (url: string) => {
       if (url.includes('code=')) {
@@ -20,8 +22,17 @@ export default function RootLayout() {
         const params = new URLSearchParams(hash);
         const access_token = params.get('access_token');
         const refresh_token = params.get('refresh_token');
+        const type = params.get('type');
         if (access_token && refresh_token) {
-          await supabase.auth.setSession({ access_token, refresh_token });
+          if (type === 'recovery') {
+            // Password reset link — set session then go to the reset form
+            skipAuthRedirect.current = true;
+            await supabase.auth.setSession({ access_token, refresh_token });
+            router.replace('/reset-password');
+          } else {
+            // Email confirmation link — set session normally
+            await supabase.auth.setSession({ access_token, refresh_token });
+          }
         }
       }
     };
@@ -37,6 +48,10 @@ export default function RootLayout() {
   // Protected routing — only runs after auth state is known
   useEffect(() => {
     if (loading) return;
+    if (skipAuthRedirect.current) {
+      skipAuthRedirect.current = false;
+      return;
+    }
     const inAuthGroup = segments[0] === '(auth)';
     if (!session && !inAuthGroup) {
       router.replace('/(auth)/sign-in');
@@ -59,6 +74,7 @@ export default function RootLayout() {
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="vehicle/[slug]" options={{ headerShown: false }} />
+      <Stack.Screen name="reset-password" options={{ headerShown: false }} />
       <Stack.Screen name="post/[id]" options={{ title: 'Post' }} />
     </Stack>
   );

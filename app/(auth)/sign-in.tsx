@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  View,
   Text,
   TextInput,
   TouchableOpacity,
@@ -9,10 +8,25 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { signIn } from '../../src/features/auth/api';
 
+function parseSignInError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes('email not confirmed')) {
+    return 'Your email is not confirmed yet. Check your inbox for a confirmation link.';
+  }
+  if (m.includes('invalid login credentials') || m.includes('invalid email or password')) {
+    return 'Incorrect email or password.';
+  }
+  if (m.includes('too many requests') || m.includes('rate limit')) {
+    return 'Too many attempts. Please wait a moment and try again.';
+  }
+  return message;
+}
+
 export default function SignInScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,9 +36,9 @@ export default function SignInScreen() {
     setError(null);
     setLoading(true);
     try {
-      await signIn(email, password);
+      await signIn(email.trim(), password);
     } catch (err: any) {
-      setError(err.message);
+      setError(parseSignInError(err.message ?? 'Something went wrong.'));
     } finally {
       setLoading(false);
     }
@@ -67,6 +81,13 @@ export default function SignInScreen() {
         ) : (
           <Text style={styles.buttonText}>Sign In</Text>
         )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.forgotButton}
+        onPress={() => router.push('/(auth)/forgot-password')}
+      >
+        <Text style={styles.forgotText}>Forgot password?</Text>
       </TouchableOpacity>
 
       <Link href="/(auth)/sign-up" style={styles.link}>
@@ -123,6 +144,14 @@ const styles = StyleSheet.create({
   error: {
     color: '#d00',
     marginBottom: 12,
+    fontSize: 14,
+  },
+  forgotButton: {
+    marginTop: 14,
+    alignItems: 'center',
+  },
+  forgotText: {
+    color: '#555',
     fontSize: 14,
   },
   link: {
