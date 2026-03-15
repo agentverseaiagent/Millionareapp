@@ -19,7 +19,7 @@ export async function searchVehicleModels(query: string): Promise<VehicleSearchR
         vehicle_makes!inner(name)
       )
     `)
-    .eq('alias', normalized)
+    .eq('normalized_alias', normalized)
     .limit(5);
 
   if (aliasMatches) {
@@ -77,9 +77,11 @@ export async function getVehicleModelBySlug(slug: string): Promise<VehicleModel 
 }
 
 export async function followModel(vehicleModelId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
   const { error } = await supabase
     .from('user_model_follows')
-    .insert({ vehicle_model_id: vehicleModelId });
+    .insert({ user_id: user.id, vehicle_model_id: vehicleModelId });
   if (error) throw error;
 }
 
