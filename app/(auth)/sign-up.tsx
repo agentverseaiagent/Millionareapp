@@ -35,6 +35,14 @@ function parseSignUpError(message: string): string {
   if (m.includes('unable to validate email') || m.includes('invalid email')) {
     return 'Please enter a valid email address.';
   }
+  // SMTP / email delivery failures
+  if (m.includes('sending confirmation email') || m.includes('error sending')) {
+    return 'Could not send confirmation email. Please try again in a moment.';
+  }
+  // Supabase rate limit on email sends (default: 2/hour on free plan)
+  if (m.includes('email rate limit exceeded') || m.includes('rate limit') || m.includes('too many')) {
+    return 'Too many signup attempts. Please wait an hour before trying again, or use a different email.';
+  }
   return message;
 }
 
