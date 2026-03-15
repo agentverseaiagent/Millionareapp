@@ -17,6 +17,15 @@ import type { Post, PostComment, PostVehicleAttachment } from '../../src/feature
 import { CATEGORY_LABELS } from '../../src/features/posts/types';
 import { relativeTime, CATEGORY_STYLE } from '../../src/utils/postUtils';
 
+function buildLabel(v: PostVehicleAttachment): string {
+  const parts: string[] = [];
+  if (v.make_name) parts.push(v.make_name);
+  if (v.model_name) parts.push(v.model_name);
+  if (v.trim_name) parts.push(v.trim_name);
+  if (v.year) parts.push(String(v.year));
+  return parts.join(' · ');
+}
+
 const C = {
   bg: '#FFFFFF',
   surface: '#F8F8F8',
@@ -77,15 +86,6 @@ export default function PostScreen() {
         <Text style={styles.notFound}>Post not found.</Text>
       </View>
     );
-  }
-
-  function buildLabel(v: PostVehicleAttachment): string {
-    const parts: string[] = [];
-    if (v.make_name) parts.push(v.make_name);
-    if (v.model_name) parts.push(v.model_name);
-    if (v.trim_name) parts.push(v.trim_name);
-    if (v.year) parts.push(String(v.year));
-    return parts.join(' · ');
   }
 
   const vehicles: { label: string; slug: string | null }[] = (() => {
