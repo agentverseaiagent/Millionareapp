@@ -50,12 +50,19 @@ export default function SignUpScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
   async function handleSignUp() {
     setError(null);
+    setConfirmError(null);
+    if (password !== confirmPassword) {
+      setConfirmError('Passwords do not match.');
+      return;
+    }
     setLoading(true);
     try {
       const data = await signUp(email.trim(), password);
@@ -128,8 +135,20 @@ export default function SignUpScreen() {
           placeholderTextColor={C.textMuted}
           secureTextEntry
           value={password}
-          onChangeText={setPassword}
+          onChangeText={t => { setPassword(t); setConfirmError(null); }}
         />
+
+        <TextInput
+          style={[styles.input, confirmError ? styles.inputError : null]}
+          placeholder="Confirm password"
+          placeholderTextColor={C.textMuted}
+          secureTextEntry
+          value={confirmPassword}
+          onChangeText={t => { setConfirmPassword(t); setConfirmError(null); }}
+        />
+        {confirmError && (
+          <Text style={styles.fieldError}>{confirmError}</Text>
+        )}
 
         <TouchableOpacity
           style={[styles.button, loading && styles.buttonLoading]}
@@ -207,6 +226,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontSize: 16,
     color: C.text,
+  },
+  inputError: {
+    borderColor: C.error,
+    marginBottom: 4,
+  },
+  fieldError: {
+    fontSize: 12,
+    color: C.error,
+    marginBottom: 12,
+    marginTop: 0,
   },
   button: {
     backgroundColor: C.accent,
