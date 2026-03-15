@@ -44,3 +44,11 @@ export interface CreatePostInput {
   vehicle_model_id?: string;
   category?: PostCategory;
 }
+
+export interface PostComment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+}

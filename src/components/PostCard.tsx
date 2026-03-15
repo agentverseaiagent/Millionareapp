@@ -47,13 +47,18 @@ export function PostCard({ post, showModel = true }: Props) {
   const catStyle = post.category ? CATEGORY_STYLE[post.category] : null;
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => router.push(`/post/${post.id}`)}
+      activeOpacity={0.75}
+    >
       {/* Vehicle tag + time row */}
       <View style={styles.topRow}>
         {showModel && modelDisplay ? (
           <TouchableOpacity
-            onPress={() => router.push(`/vehicle/${post.vehicle_model!.slug}`)}
+            onPress={e => { e.stopPropagation?.(); router.push(`/vehicle/${post.vehicle_model!.slug}`); }}
             style={styles.vehicleTag}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
             <Text style={styles.vehicleTagText}>{modelDisplay}</Text>
           </TouchableOpacity>
@@ -74,7 +79,7 @@ export function PostCard({ post, showModel = true }: Props) {
           </Text>
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
