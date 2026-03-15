@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { getPostById, getPostComments, createComment } from '../../src/features/posts/api';
 import type { Post, PostComment } from '../../src/features/posts/types';
@@ -28,6 +29,7 @@ const C = {
 };
 
 const CATEGORY_STYLE: Record<PostCategory, { bg: string; text: string }> = {
+  general:       { bg: '#F3F4F6', text: '#6B7280' },
   price_paid:    { bg: '#ECFDF5', text: '#059669' },
   lease_finance: { bg: '#EFF6FF', text: '#2563EB' },
   issue:         { bg: '#FEF2F2', text: '#DC2626' },
@@ -51,6 +53,7 @@ function relativeTime(dateStr: string): string {
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<PostComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -170,7 +173,7 @@ export default function PostScreen() {
         />
 
         {/* Reply input */}
-        <View style={styles.replyBar}>
+        <View style={[styles.replyBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
           <TextInput
             ref={inputRef}
             style={styles.replyInput}
@@ -287,7 +290,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: C.border,
     backgroundColor: C.bg,
@@ -312,7 +315,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   replyBtnDisabled: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#CCCCCC',
   },
   replyBtnText: {
     color: '#fff',
