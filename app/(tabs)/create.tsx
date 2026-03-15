@@ -384,7 +384,9 @@ export default function CreateScreen() {
 
         <View style={styles.pickerActions}>
           <TouchableOpacity style={styles.addVehicleConfirmBtn} onPress={handleAddVehicle}>
-            <Text style={styles.addVehicleConfirmText}>Add to post</Text>
+            <Text style={styles.addVehicleConfirmText}>
+              Tag this post with {[picker.make_name, picker.model_name, picker.trim_name, picker.year].filter(Boolean).join(' · ')}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.cancelPickerBtn} onPress={closePicker}>
             <Text style={styles.cancelPickerText}>Cancel</Text>
