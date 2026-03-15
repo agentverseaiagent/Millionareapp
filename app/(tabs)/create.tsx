@@ -428,9 +428,9 @@ export default function CreateScreen() {
       ) : !hasValidUsername(profile?.username) ? (
         <View style={styles.usernameGate}>
           <Ionicons name="person-circle-outline" size={52} color={C.textFaint} />
-          <Text style={styles.gateTitle}>Username required</Text>
+          <Text style={styles.gateTitle}>Display name required</Text>
           <Text style={styles.gateBody}>
-            Set a username on your profile before you can post.
+            Set a display name on your profile before you can post.
           </Text>
           <TouchableOpacity
             style={styles.gateBtn}

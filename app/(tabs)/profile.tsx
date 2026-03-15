@@ -118,7 +118,7 @@ export default function ProfileScreen() {
       setUsername(trimmed || null);
       setEditingUsername(false);
     } catch (e: any) {
-      Alert.alert('Error', e.message ?? 'Could not save username');
+      Alert.alert('Error', e.message ?? 'Could not save display name');
     } finally {
       setSavingUsername(false);
     }
@@ -179,7 +179,7 @@ export default function ProfileScreen() {
                 style={styles.usernameInput}
                 value={usernameInput}
                 onChangeText={setUsernameInput}
-                placeholder="Enter username"
+                placeholder="Enter display name"
                 placeholderTextColor={C.textFaint}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -212,7 +212,7 @@ export default function ProfileScreen() {
               onPress={() => { setUsernameInput(username ?? ''); setEditingUsername(true); }}
             >
               <Text style={styles.usernameDisplay}>
-                {username ? `@${username}` : 'Set username'}
+                {username ? `@${username}` : 'Set display name'}
               </Text>
               <Ionicons name="pencil-outline" size={13} color={C.textFaint} style={{ marginLeft: 5 }} />
             </TouchableOpacity>

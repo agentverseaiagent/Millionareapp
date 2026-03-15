@@ -15,9 +15,9 @@ import { signUp, updateUsername } from '../../src/features/auth/api';
 
 function validateUsername(u: string): string | null {
   const t = u.trim();
-  if (!t) return 'Username is required.';
-  if (t.length < 2) return 'Username must be at least 2 characters.';
-  if (t.length > 30) return 'Username must be 30 characters or fewer.';
+  if (!t) return 'Display name is required.';
+  if (t.length < 2) return 'Display name must be at least 2 characters.';
+  if (t.length > 30) return 'Display name must be 30 characters or fewer.';
   if (!/^[a-zA-Z0-9_]+$/.test(t)) return 'Only letters, numbers, and underscores allowed.';
   return null;
 }
@@ -135,7 +135,7 @@ export default function SignUpScreen() {
 
         <TextInput
           style={[styles.input, usernameError ? styles.inputError : null]}
-          placeholder="Username (visible on your posts)"
+          placeholder="Display Name (visible on your posts)"
           placeholderTextColor={C.textMuted}
           autoCapitalize="none"
           autoCorrect={false}
