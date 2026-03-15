@@ -252,32 +252,38 @@ export default function CreateScreen() {
             autoFocus
           />
           {searching && <ActivityIndicator size="small" color={C.accent} style={styles.smallLoader} />}
-          {vehicleResults.slice(0, 8).map(item => (
-            <TouchableOpacity
-              key={item.is_make_result ? `make_${item.id}` : item.id}
-              style={[styles.resultRow, item.is_make_result && styles.resultRowMake]}
-              onPress={() => handleSelectResult(item)}
-            >
-              {item.is_make_result ? (
-                <View style={styles.makeResultInner}>
-                  <Ionicons name="car-outline" size={15} color={C.accent} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.makeResultName}>{item.name}</Text>
-                    <Text style={styles.makeResultSub}>All {item.name} vehicles</Text>
+          <ScrollView
+            style={styles.resultsScroll}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+          >
+            {vehicleResults.slice(0, 8).map(item => (
+              <TouchableOpacity
+                key={item.is_make_result ? `make_${item.id}` : item.id}
+                style={[styles.resultRow, item.is_make_result && styles.resultRowMake]}
+                onPress={() => handleSelectResult(item)}
+              >
+                {item.is_make_result ? (
+                  <View style={styles.makeResultInner}>
+                    <Ionicons name="car-outline" size={15} color={C.accent} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.makeResultName}>{item.name}</Text>
+                      <Text style={styles.makeResultSub}>All {item.name} vehicles</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={14} color={C.textFaint} />
                   </View>
-                  <Ionicons name="chevron-forward" size={14} color={C.textFaint} />
-                </View>
-              ) : (
-                <>
-                  <Text style={styles.resultMake}>{item.make_name}</Text>
-                  <View style={styles.resultNameRow}>
-                    <Text style={styles.resultName}>{item.name}</Text>
-                    {item.is_discontinued && <Text style={styles.resultDiscontinued}>Discontinued</Text>}
-                  </View>
-                </>
-              )}
-            </TouchableOpacity>
-          ))}
+                ) : (
+                  <>
+                    <Text style={styles.resultMake}>{item.make_name}</Text>
+                    <View style={styles.resultNameRow}>
+                      <Text style={styles.resultName}>{item.name}</Text>
+                      {item.is_discontinued && <Text style={styles.resultDiscontinued}>Discontinued</Text>}
+                    </View>
+                  </>
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
           <TouchableOpacity style={styles.cancelPickerBtn} onPress={closePicker}>
             <Text style={styles.cancelPickerText}>Cancel</Text>
           </TouchableOpacity>
@@ -326,15 +332,21 @@ export default function CreateScreen() {
                 autoCorrect={false}
               />
               {searchingModel && <ActivityIndicator size="small" color={C.accent} style={styles.smallLoader} />}
-              {modelResults.slice(0, 6).map(item => (
-                <TouchableOpacity key={item.id} style={styles.resultRow} onPress={() => handleSelectResult(item)}>
-                  <Text style={styles.resultMake}>{item.make_name}</Text>
-                  <View style={styles.resultNameRow}>
-                    <Text style={styles.resultName}>{item.name}</Text>
-                    {item.is_discontinued && <Text style={styles.resultDiscontinued}>Discontinued</Text>}
-                  </View>
-                </TouchableOpacity>
-              ))}
+              <ScrollView
+                style={styles.resultsScroll}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled
+              >
+                {modelResults.map(item => (
+                  <TouchableOpacity key={item.id} style={styles.resultRow} onPress={() => handleSelectResult(item)}>
+                    <Text style={styles.resultMake}>{item.make_name}</Text>
+                    <View style={styles.resultNameRow}>
+                      <Text style={styles.resultName}>{item.name}</Text>
+                      {item.is_discontinued && <Text style={styles.resultDiscontinued}>Discontinued</Text>}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
               <TouchableOpacity onPress={() => { setAddingModel(false); setModelQuery(''); setModelResults([]); }}>
                 <Text style={styles.cancelPickerText}>← Back</Text>
               </TouchableOpacity>
@@ -642,6 +654,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: C.text,
   },
   smallLoader: { marginTop: 10 },
+  resultsScroll: { maxHeight: 280 },
   resultRow: { paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: C.border },
   resultRowMake: { backgroundColor: '#FFFAF7', paddingHorizontal: 8, borderRadius: 6, marginTop: 2 },
   makeResultInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
