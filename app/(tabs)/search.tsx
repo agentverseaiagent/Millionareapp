@@ -71,14 +71,11 @@ export default function SearchScreen() {
 
   const handleSelect = useCallback((item: VehicleSearchResult) => {
     if (item.is_make_result) {
-      // Scope search to show all models for this make
-      const makeQuery = item.name + ' ';
-      setQuery(makeQuery);
-      search(makeQuery);
+      router.push(`/make/${item.slug}`);
       return;
     }
     router.push(`/vehicle/${item.slug}`);
-  }, [router, search]);
+  }, [router]);
 
   const handleMakeFollowToggle = useCallback(async (item: VehicleSearchResult) => {
     const id = item.id;

@@ -103,6 +103,17 @@ export async function deletePost(postId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function getMakeFeed(vehicleMakeId: string, limit = 30, offset = 0): Promise<Post[]> {
+  const { data, error } = await supabase
+    .from('posts')
+    .select(POST_SELECT)
+    .eq('vehicle_make_id', vehicleMakeId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+  if (error) throw error;
+  return (data || []) as unknown as Post[];
+}
+
 export async function getPostsByAuthor(authorId: string, limit = 50, offset = 0): Promise<Post[]> {
   const { data, error } = await supabase
     .from('posts')

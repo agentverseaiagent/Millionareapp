@@ -149,6 +149,16 @@ export async function searchVehicles(rawQuery: string): Promise<VehicleSearchRes
 /** @deprecated Use searchVehicles instead */
 export const searchVehicleModels = searchVehicles;
 
+export async function getVehicleMakeBySlug(slug: string): Promise<{ id: string; name: string; slug: string } | null> {
+  const { data, error } = await supabase
+    .from('vehicle_makes')
+    .select('id, name, slug')
+    .eq('slug', slug)
+    .single();
+  if (error) return null;
+  return data;
+}
+
 export async function getVehicleModelBySlug(slug: string): Promise<VehicleModel | null> {
   const { data, error } = await supabase
     .from('vehicle_models')

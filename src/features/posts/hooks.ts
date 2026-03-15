@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getGlobalFeed, getFollowingFeed, getModelFeed } from './api';
+import { getGlobalFeed, getFollowingFeed, getMakeFeed, getModelFeed } from './api';
 import type { Post } from './types';
 
 const PAGE_SIZE = 20;
@@ -90,6 +90,33 @@ export function useFollowingFeed() {
   useEffect(() => { refresh(); }, [refresh]);
 
   return { posts, loading, loadingMore, hasMore, error, refresh, loadMore };
+}
+
+export function useMakeFeed(vehicleMakeId: string | null) {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!vehicleMakeId) {
+      setPosts([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      setPosts(await getMakeFeed(vehicleMakeId));
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [vehicleMakeId]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  return { posts, loading, error, refresh };
 }
 
 export function useModelFeed(vehicleModelId: string | null) {
