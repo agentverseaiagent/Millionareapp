@@ -4,6 +4,30 @@ Reverse-chronological log of completed stable work units.
 
 ---
 
+## 2026-03-15 (session 8 — make page, create/profile rework, UX polish)
+
+- Make page: added `app/make/[slug].tsx` — feed filtered by `vehicle_make_id`, Follow/Unfollow, post prompt
+- Make feed API: `getMakeFeed(makeId)` in posts/api.ts — queries `vehicle_make_id` (catches both make-only and model posts since model posts store make_id too)
+- Make lookup: `getVehicleMakeBySlug(slug)` in vehicles/api.ts
+- `useMakeFeed` hook in posts/hooks.ts
+- Search: `handleSelect` now navigates to `/make/[slug]` for make results (previously just scoped search)
+- Create post rework: step-by-step flow — initial search → make selected + "Add model" prompt → model + trim chips + year; "Change" and "Cancel" at each level; bottom submit button; category above vehicle
+- Profile rework: tab switcher (My Posts | Following); My Posts calls `getPostsByAuthor`; identity row merged with username edit pencil
+- `getPostsByAuthor` added to posts/api.ts
+- Migration 000007 applied: `posts.author_id` FK re-targeted to `profiles.id` enabling PostgREST `author:profiles(id, username)` join
+- Post type: added `author?: { id, username }` field
+- POST_SELECT: includes `author:profiles!author_id(id, username)`
+- PostCard: shows `@username` above post body when set
+- Feed hooks: pagination added (`loadMore`, `hasMore`, `loadingMore`, `offsetRef`) with PAGE_SIZE=20
+- Home feed: `onEndReached` + footer spinner for infinite scroll
+- auth/api: added `getUserProfile()` and `updateUsername()`
+- Profile: username editing inline (edit pencil → text input → Save/✕)
+- Search: Cancel header button via `navigation.setOptions` when query is active
+- Notifications: replaced bare `<Text>` with proper coming-soon screen (icon + title + body)
+- All changes committed and pushed across two commits
+
+---
+
 ## 2026-03-15 (session 6 — vehicle attachment implementation)
 
 - Schema migration applied: `vehicle_trims` table created with RLS; `vehicle_make_id`, `vehicle_trim_id`, `vehicle_year` added to posts

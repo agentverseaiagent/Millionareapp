@@ -35,36 +35,34 @@ Ordered list of upcoming work. Update this file as tasks are completed or priori
 - [x] Search: prepends make-level result when query matches a make exactly
 - [x] Create screen: cascading vehicle picker (make-only or model), trim chips, year input
 - [x] Post display: vehicle label shows make · model · trim · year
+- [x] Make-level follows (follow Honda without picking a model)
+- [x] Discontinued model visibility (migration + query tiers + UI labels)
+- [x] Follow/unfollow immediate refresh in profile and following feed (useFocusEffect)
+- [x] Username: set/edit @username in profile; @username shown in PostCard
+- [x] Pagination: useGlobalFeed + useFollowingFeed support loadMore/hasMore (PAGE_SIZE=20)
+- [x] Home feed: infinite scroll via onEndReached
+- [x] Create post: step-by-step vehicle selection (make → model → trim → year, stop at any level)
+- [x] Search: Cancel button in header when query active; tapping make navigates to /make/[slug]
+- [x] Make page (/make/[slug]): feed of all posts for that make, Follow button, post prompt
+- [x] Profile: My Posts tab + Following tab; username edit inline
+- [x] Notifications: proper coming-soon placeholder
+- [x] posts.author_id FK re-targeted to profiles for PostgREST join
 
 ---
 
 ## Active Workstreams
 
-Work must proceed in this order. Core product feel must be correct before feature expansion.
+### 1. Auth and email
+- [ ] Wire up Resend as SMTP provider in Supabase (confirmation + magic-link emails)
+- [ ] Test email confirmation flow end-to-end (sign up → confirm → first post)
 
-### 1. App shell, navigation, and feed UX
-- [ ] Audit all back/cancel navigation paths for correctness
-- [ ] Fix follow/unfollow state not updating immediately in profile and following feed
-- [ ] Review feed header identity and rhythm
-- [ ] Show author username in posts (requires profile username feature)
-- [ ] Pagination for feeds (load more as user scrolls)
-
-### 2. Search and vehicle-catalog discovery
-- [ ] Add make alias support (e.g. "chevy" → Chevrolet)
+### 2. Catalog and search
+- [ ] Add make alias support (e.g. "chevy" → Chevrolet, "vw" → Volkswagen)
 - [ ] Audit alias table for coverage gaps
-- [ ] Dedicated make-level browse/community page (currently only a search result, not a real page)
-- [ ] Validate discontinued model coverage in catalog
+- [ ] Seed trim data (EPA fueleconomy.gov candidate)
 
-### 3. Vehicle attachment — remaining work
-- [ ] Seed trim data (source to be determined — EPA fueleconomy.gov is a candidate)
-- [ ] Make-level community page with posts filtered by make
+### 3. Community and feeds
+- [ ] Notifications tab: likes and reply alerts (scope TBD)
 
-### 4. User profile and identity
-- [ ] Allow users to set a display username
-- [ ] Show username in posts instead of user ID
-- [ ] Profile editing screen
-
-### 5. Polish and quality (ongoing)
-- [ ] Notifications tab design (likes, replies — scope TBD)
-- [ ] Verify email confirmation before first post
-- [ ] Web layout review
+### 4. Polish
+- [ ] Web layout review — audit key screens for broken layout on wider viewports
