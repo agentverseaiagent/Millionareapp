@@ -275,7 +275,21 @@ export default function ProfileScreen() {
 
   if (tab === 'following') {
     const isEmpty = followedMakes.length === 0 && followedModels.length === 0;
-    const followData: VehicleSearchResult[] = [...followedMakes, ...followedModels];
+
+    type FollowRow =
+      | { kind: 'header'; label: string; key: string }
+      | { kind: 'make'; item: VehicleSearchResult; key: string }
+      | { kind: 'model'; item: VehicleSearchResult; key: string };
+
+    const followData: FollowRow[] = [];
+    if (followedMakes.length > 0) {
+      followData.push({ kind: 'header', label: 'Makes', key: 'header_makes' });
+      followedMakes.forEach(m => followData.push({ kind: 'make', item: m, key: `make_${m.id}` }));
+    }
+    if (followedModels.length > 0) {
+      followData.push({ kind: 'header', label: 'Models', key: 'header_models' });
+      followedModels.forEach(m => followData.push({ kind: 'model', item: m, key: `model_${m.id}` }));
+    }
 
     return (
       <View style={styles.container}>
@@ -285,20 +299,28 @@ export default function ProfileScreen() {
         ) : isEmpty ? (
           <View style={styles.empty}>
             <Ionicons name="car-outline" size={40} color={C.textFaint} />
-            <Text style={styles.emptyText}>Not following anything yet.</Text>
+            <Text style={styles.emptyText}>You're not following any vehicles yet.</Text>
             <TouchableOpacity
               style={styles.discoverButton}
               onPress={() => router.push('/(tabs)/search')}
             >
-              <Text style={styles.discoverButtonText}>Discover Makes & Models</Text>
+              <Text style={styles.discoverButtonText}>Find vehicles to follow</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <FlatList
             data={followData}
-            keyExtractor={item => item.is_make_result ? `make_${item.id}` : item.id}
-            renderItem={({ item }) => {
-              if (item.is_make_result) {
+            keyExtractor={row => row.key}
+            renderItem={({ item: row }) => {
+              if (row.kind === 'header') {
+                return (
+                  <View style={styles.followSectionHeader}>
+                    <Text style={styles.followSectionHeaderText}>{row.label}</Text>
+                  </View>
+                );
+              }
+              if (row.kind === 'make') {
+                const item = row.item;
                 return (
                   <View style={styles.makeRow}>
                     <TouchableOpacity
@@ -320,6 +342,8 @@ export default function ProfileScreen() {
                   </View>
                 );
               }
+              // model
+              const item = row.item;
               return (
                 <TouchableOpacity
                   style={styles.modelRow}
@@ -333,6 +357,7 @@ export default function ProfileScreen() {
                         <Text style={styles.modelRowDiscontinued}>Discontinued</Text>
                       )}
                     </View>
+                    <Text style={styles.makeRowSub}>Model</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={C.textFaint} />
                 </TouchableOpacity>
@@ -346,6 +371,7 @@ export default function ProfileScreen() {
           onPress={() => router.push('/(tabs)/search')}
         >
           <Ionicons name="add" size={24} color="#fff" />
+          <Text style={styles.fabLabel}>Follow</Text>
         </TouchableOpacity>
       </View>
     );
@@ -608,21 +634,43 @@ const styles = StyleSheet.create({
   modelRowName: { fontSize: 15, color: C.text, fontWeight: '500' },
   modelRowDiscontinued: { fontSize: 11, color: C.textFaint, fontStyle: 'italic' },
 
+  // ── Follow section headers ─────────────────────────────────────
+  followSectionHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 6,
+    backgroundColor: C.bg,
+  },
+  followSectionHeaderText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: C.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+
   // ── FAB ───────────────────────────────────────────────────────
   fab: {
     position: 'absolute',
     bottom: 24,
     right: 20,
-    width: 50,
-    height: 50,
     borderRadius: 25,
     backgroundColor: C.accent,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    gap: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
+  },
+  fabLabel: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
