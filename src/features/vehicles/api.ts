@@ -55,10 +55,13 @@ export async function searchVehicles(rawQuery: string): Promise<VehicleSearchRes
   const firstWordNorm = normalizeQuery(words[0]);
   const restNorm = words.length > 1 ? normalizeQuery(words.slice(1).join(' ')) : null;
 
-  // Full query matches a make name or slug exactly
-  const fullMakeMatch = (allMakes ?? []).find(
-    m => normalizeQuery(m.slug) === normalized || normalizeQuery(m.name) === normalized,
-  );
+  // Full query matches a make name or slug — exact or prefix (handles "mercedes" → Mercedes-Benz)
+  const fullMakeMatch = (allMakes ?? []).find(m => {
+    const ns = normalizeQuery(m.slug);
+    const nn = normalizeQuery(m.name);
+    return ns === normalized || nn === normalized ||
+      (normalized.length >= 3 && (ns.startsWith(normalized) || nn.startsWith(normalized)));
+  });
 
   // First word matches a make (for "honda crv", "toyota rav4", etc.)
   const prefixMakeMatch = restNorm
