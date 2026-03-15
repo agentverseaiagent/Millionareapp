@@ -30,14 +30,16 @@ export default function HomeScreen() {
   const { session } = useSession();
   const currentUserId = session?.user?.id;
   const [mode, setMode] = useState<FeedMode>('following');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const globalFeed = useGlobalFeed();
   const followingFeed = useFollowingFeed();
 
   const active = mode === 'all' ? globalFeed : followingFeed;
 
-  const handleRefresh = useCallback(() => {
-    globalFeed.refresh();
-    followingFeed.refresh();
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await Promise.all([globalFeed.refresh(), followingFeed.refresh()]);
+    setIsRefreshing(false);
   }, [globalFeed, followingFeed]);
 
   const handleDelete = useCallback(async (postId: string) => {
@@ -51,24 +53,29 @@ export default function HomeScreen() {
   const followingEmpty = mode === 'following' && !followingFeed.loading && followingFeed.posts.length === 0;
 
   const toggle = (
-    <View style={styles.toggleRow}>
-      <TouchableOpacity
-        style={[styles.toggleBtn, mode === 'following' && styles.toggleBtnActive]}
-        onPress={() => setMode('following')}
-      >
-        <Text style={[styles.toggleText, mode === 'following' && styles.toggleTextActive]}>
-          Following
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.toggleBtn, mode === 'all' && styles.toggleBtnActive]}
-        onPress={() => setMode('all')}
-      >
-        <Text style={[styles.toggleText, mode === 'all' && styles.toggleTextActive]}>
-          All
-        </Text>
-      </TouchableOpacity>
-    </View>
+    <>
+      <View style={styles.toggleRow}>
+        <TouchableOpacity
+          style={[styles.toggleBtn, mode === 'following' && styles.toggleBtnActive]}
+          onPress={() => setMode('following')}
+        >
+          <Text style={[styles.toggleText, mode === 'following' && styles.toggleTextActive]}>
+            Following
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.toggleBtn, mode === 'all' && styles.toggleBtnActive]}
+          onPress={() => setMode('all')}
+        >
+          <Text style={[styles.toggleText, mode === 'all' && styles.toggleTextActive]}>
+            All
+          </Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.refreshHintRow}>
+        <Text style={styles.refreshHintText}>↓ Swipe down to refresh</Text>
+      </View>
+    </>
   );
 
   let emptyComponent: React.ReactElement | null = null;
@@ -111,19 +118,21 @@ export default function HomeScreen() {
         data={active.posts}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-            <PostCard
-              post={item}
-              showModel
-              currentUserId={currentUserId}
-              onDelete={handleDelete}
-            />
-          )}
+          <PostCard
+            post={item}
+            showModel
+            currentUserId={currentUserId}
+            onDelete={handleDelete}
+          />
+        )}
         ListHeaderComponent={toggle}
         ListEmptyComponent={emptyComponent}
-        contentContainerStyle={active.posts.length === 0 ? styles.emptyList : undefined}
+        contentContainerStyle={active.posts.length === 0 ? styles.emptyList : styles.listContent}
+        alwaysBounceVertical
+        overScrollMode="always"
         refreshControl={
           <RefreshControl
-            refreshing={active.loading}
+            refreshing={isRefreshing}
             onRefresh={handleRefresh}
             tintColor={C.accent}
           />
@@ -171,6 +180,21 @@ const styles = StyleSheet.create({
   },
   emptyList: {
     flexGrow: 1,
+  },
+  listContent: {
+    paddingBottom: 24,
+  },
+  refreshHintRow: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    backgroundColor: C.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  refreshHintText: {
+    fontSize: 12,
+    color: C.textMuted,
+    letterSpacing: 0.2,
   },
   emptyTitle: {
     fontSize: 18,
