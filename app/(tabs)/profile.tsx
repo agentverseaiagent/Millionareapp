@@ -49,7 +49,7 @@ export default function ProfileScreen() {
 
   // My Posts
   const [myPosts, setMyPosts] = useState<Post[]>([]);
-  const [postsLoading, setPostsLoading] = useState(false);
+  const [postsLoading, setPostsLoading] = useState(true);
 
   // Following
   const [followedMakes, setFollowedMakes] = useState<VehicleSearchResult[]>([]);
@@ -62,9 +62,10 @@ export default function ProfileScreen() {
   const loadPosts = useCallback(async (uid: string) => {
     setPostsLoading(true);
     try {
-      setMyPosts(await getPostsByAuthor(uid));
-    } catch {
-      // ignore
+      const posts = await getPostsByAuthor(uid);
+      setMyPosts(posts);
+    } catch (e) {
+      console.warn('loadPosts error:', e);
     } finally {
       setPostsLoading(false);
     }
