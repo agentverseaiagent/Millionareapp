@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { UserAvatar } from './UserAvatar';
 import type { Post, PostVehicleAttachment } from '../features/posts/types';
 import { CATEGORY_LABELS } from '../features/posts/types';
 import { relativeTime, CATEGORY_STYLE } from '../utils/postUtils';
@@ -112,7 +113,10 @@ export function PostCard({ post, showModel = true, currentUserId, onDelete }: Pr
 
       {/* Author */}
       {post.author?.username && (
-        <Text style={styles.author}>@{post.author.username}</Text>
+        <View style={styles.authorRow}>
+          <UserAvatar avatarUrl={post.author.avatar_url} size={22} />
+          <Text style={styles.author}>@{post.author.username}</Text>
+        </View>
       )}
 
       {/* Body */}
@@ -182,11 +186,16 @@ const styles = StyleSheet.create({
   },
   time: { fontSize: 12, color: C.textFaint },
   deleteBtn: { padding: 2 },
+  authorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
   author: {
     fontSize: 12,
     color: C.textMuted,
     fontWeight: '500',
-    marginBottom: 4,
   },
   body: {
     fontSize: 15,

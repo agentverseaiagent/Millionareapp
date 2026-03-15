@@ -4,7 +4,7 @@ import type { Post, CreatePostInput, PostComment } from './types';
 const POST_SELECT = `
   id, author_id, vehicle_make_id, vehicle_model_id, vehicle_trim_id, vehicle_year,
   body, category, categories, vehicle_attachments, created_at,
-  author:profiles!author_id(id, username),
+  author:profiles!author_id(id, username, avatar_url),
   vehicle_model:vehicle_models(
     id, name, slug,
     vehicle_makes(id, name)

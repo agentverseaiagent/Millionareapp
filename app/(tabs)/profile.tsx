@@ -10,9 +10,11 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
-import { signOut, getUserProfile, updateUsername } from '../../src/features/auth/api';
+import { signOut, getUserProfile, updateUsername, updateAvatar } from '../../src/features/auth/api';
+import { UserAvatar } from '../../src/components/UserAvatar';
 import { getFollowedModels, getFollowedMakes, unfollowMake } from '../../src/features/vehicles/api';
 import { getPostsByAuthor, deletePost } from '../../src/features/posts/api';
 import { PostCard } from '../../src/components/PostCard';
@@ -38,6 +40,8 @@ export default function ProfileScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editingUsername, setEditingUsername] = useState(false);
   const [usernameInput, setUsernameInput] = useState('');
   const [savingUsername, setSavingUsername] = useState(false);
@@ -89,7 +93,7 @@ export default function ProfileScreen() {
       setUserId(user?.id ?? null);
       if (user?.id) loadPosts(user.id);
     });
-    getUserProfile().then(p => { if (p) setUsername(p.username); });
+    getUserProfile().then(p => { if (p) { setUsername(p.username); setAvatarUrl(p.avatar_url); } });
     loadFollows().finally(() => { initialLoadDone.current = true; });
   }, []);
 
@@ -120,6 +124,31 @@ export default function ProfileScreen() {
     }
   }
 
+  async function handleAvatarUpload() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Allow photo library access to upload an avatar.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    if (!userId) return;
+    setUploadingAvatar(true);
+    try {
+      const url = await updateAvatar(userId, result.assets[0].uri);
+      setAvatarUrl(url);
+    } catch (e: any) {
+      Alert.alert('Upload failed', e.message ?? 'Could not upload photo');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
   async function handleUnfollowMake(makeId: string) {
     await unfollowMake(makeId);
     setFollowedMakes(prev => prev.filter(m => m.id !== makeId));
@@ -136,9 +165,13 @@ export default function ProfileScreen() {
     <>
       {/* Identity row */}
       <View style={styles.userSection}>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={22} color={C.textMuted} />
-        </View>
+        <TouchableOpacity onPress={handleAvatarUpload} disabled={uploadingAvatar} style={styles.avatarWrapper}>
+          <UserAvatar avatarUrl={avatarUrl} size={44} />
+          {uploadingAvatar
+            ? <View style={styles.avatarOverlay}><ActivityIndicator size="small" color="#fff" /></View>
+            : <View style={styles.avatarOverlay}><Ionicons name="camera" size={13} color="#fff" /></View>
+          }
+        </TouchableOpacity>
         <View style={{ flex: 1 }}>
           {editingUsername ? (
             <View style={styles.usernameEditRow}>
@@ -345,15 +378,21 @@ const styles = StyleSheet.create({
     borderBottomColor: C.border,
     gap: 12,
   },
-  avatar: {
+  avatarWrapper: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: C.surface,
+    overflow: 'hidden',
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 18,
+    backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: C.border,
   },
   usernameRow: {
     flexDirection: 'row',

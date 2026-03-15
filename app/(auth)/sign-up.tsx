@@ -11,7 +11,16 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
-import { signUp } from '../../src/features/auth/api';
+import { signUp, updateUsername } from '../../src/features/auth/api';
+
+function validateUsername(u: string): string | null {
+  const t = u.trim();
+  if (!t) return 'Username is required.';
+  if (t.length < 2) return 'Username must be at least 2 characters.';
+  if (t.length > 30) return 'Username must be 30 characters or fewer.';
+  if (!/^[a-zA-Z0-9_]+$/.test(t)) return 'Only letters, numbers, and underscores allowed.';
+  return null;
+}
 
 const C = {
   bg: '#F5F5F5',
@@ -48,6 +57,8 @@ function parseSignUpError(message: string): string {
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const [username, setUsername] = useState('');
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -59,6 +70,8 @@ export default function SignUpScreen() {
   async function handleSignUp() {
     setError(null);
     setConfirmError(null);
+    const uErr = validateUsername(username);
+    if (uErr) { setUsernameError(uErr); return; }
     if (password !== confirmPassword) {
       setConfirmError('Passwords do not match.');
       return;
@@ -66,9 +79,10 @@ export default function SignUpScreen() {
     setLoading(true);
     try {
       const data = await signUp(email.trim(), password);
-      // If auto-confirm is on, Supabase returns a session immediately.
-      // The auth listener in _layout.tsx will route to tabs automatically.
-      // Only show "check your email" when no session (confirmation required).
+      // Persist username immediately — do not wait for a second profile-edit step.
+      // If this fails (e.g. duplicate username), the user still lands in the app
+      // and the create-post gate will direct them to fix it from the profile screen.
+      try { await updateUsername(username.trim()); } catch {}
       if (!data.session) setSent(true);
     } catch (err: any) {
       setError(parseSignUpError(err.message ?? 'Something went wrong.'));
@@ -117,6 +131,19 @@ export default function SignUpScreen() {
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>{error}</Text>
           </View>
+        )}
+
+        <TextInput
+          style={[styles.input, usernameError ? styles.inputError : null]}
+          placeholder="Username (visible on your posts)"
+          placeholderTextColor={C.textMuted}
+          autoCapitalize="none"
+          autoCorrect={false}
+          value={username}
+          onChangeText={t => { setUsername(t); setUsernameError(null); }}
+        />
+        {usernameError && (
+          <Text style={styles.fieldError}>{usernameError}</Text>
         )}
 
         <TextInput

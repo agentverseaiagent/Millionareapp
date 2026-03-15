@@ -25,7 +25,7 @@ export function useSession(): AuthState {
 }
 
 export function useProfile() {
-  const [profile, setProfile] = useState<{ id: string; username: string | null } | null>(null);
+  const [profile, setProfile] = useState<{ id: string; username: string | null; avatar_url: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refetch = useCallback(async () => {

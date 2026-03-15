@@ -44,15 +44,32 @@ export async function updatePassword(newPassword: string) {
   if (error) throw error;
 }
 
-export async function getUserProfile(): Promise<{ id: string; username: string | null } | null> {
+export async function getUserProfile(): Promise<{ id: string; username: string | null; avatar_url: string | null } | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const { data } = await supabase
     .from('profiles')
-    .select('id, username')
+    .select('id, username, avatar_url')
     .eq('id', user.id)
     .single();
   return data ?? null;
+}
+
+export async function updateAvatar(userId: string, localUri: string): Promise<string> {
+  const response = await fetch(localUri);
+  const blob = await response.blob();
+  const path = `${userId}/avatar.jpg`;
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
+  if (uploadError) throw uploadError;
+  const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ avatar_url: publicUrl })
+    .eq('id', userId);
+  if (updateError) throw updateError;
+  return publicUrl;
 }
 
 export async function updateUsername(username: string): Promise<void> {
