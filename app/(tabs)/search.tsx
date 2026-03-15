@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   TextInput,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useVehicleSearch } from '../../src/features/vehicles/hooks';
+import { followMake, unfollowMake, getFollowedMakes } from '../../src/features/vehicles/api';
 import { VehicleModelItem } from '../../src/components/VehicleModelItem';
 import type { VehicleSearchResult } from '../../src/features/vehicles/types';
 
@@ -31,6 +32,17 @@ export default function SearchScreen() {
   const { results, loading, search } = useVehicleSearch();
   const router = useRouter();
 
+  // Set of make IDs the user is currently following
+  const [followedMakeIds, setFollowedMakeIds] = useState<Set<string>>(new Set());
+  // Set of make IDs with a pending follow/unfollow request in flight
+  const [followLoadingIds, setFollowLoadingIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    getFollowedMakes()
+      .then(makes => setFollowedMakeIds(new Set(makes.map(m => m.id))))
+      .catch(() => {});
+  }, []);
+
   const handleChange = useCallback((text: string) => {
     setQuery(text);
     search(text);
@@ -38,7 +50,7 @@ export default function SearchScreen() {
 
   const handleSelect = useCallback((item: VehicleSearchResult) => {
     if (item.is_make_result) {
-      // No make page yet — scope the search to show all models for this make
+      // Scope search to show all models for this make
       const makeQuery = item.name + ' ';
       setQuery(makeQuery);
       search(makeQuery);
@@ -46,6 +58,24 @@ export default function SearchScreen() {
     }
     router.push(`/vehicle/${item.slug}`);
   }, [router, search]);
+
+  const handleMakeFollowToggle = useCallback(async (item: VehicleSearchResult) => {
+    const id = item.id;
+    setFollowLoadingIds(prev => new Set([...prev, id]));
+    try {
+      if (followedMakeIds.has(id)) {
+        await unfollowMake(id);
+        setFollowedMakeIds(prev => { const s = new Set(prev); s.delete(id); return s; });
+      } else {
+        await followMake(id);
+        setFollowedMakeIds(prev => new Set([...prev, id]));
+      }
+    } catch {
+      // silently ignore — user can retry
+    } finally {
+      setFollowLoadingIds(prev => { const s = new Set(prev); s.delete(id); return s; });
+    }
+  }, [followedMakeIds]);
 
   return (
     <KeyboardAvoidingView
@@ -93,7 +123,17 @@ export default function SearchScreen() {
       <FlatList
         data={results}
         keyExtractor={item => item.is_make_result ? `make_${item.id}` : item.id}
-        renderItem={({ item }) => <VehicleModelItem item={item} onPress={handleSelect} />}
+        renderItem={({ item }) => (
+          <VehicleModelItem
+            item={item}
+            onPress={handleSelect}
+            followState={item.is_make_result ? {
+              isFollowing: followedMakeIds.has(item.id),
+              loading: followLoadingIds.has(item.id),
+              onToggle: () => handleMakeFollowToggle(item),
+            } : undefined}
+          />
+        )}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
           query.length > 0 && !loading ? (

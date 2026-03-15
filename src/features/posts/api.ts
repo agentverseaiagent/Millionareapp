@@ -23,22 +23,33 @@ export async function getGlobalFeed(limit = 30, offset = 0): Promise<Post[]> {
 }
 
 export async function getFollowingFeed(limit = 30, offset = 0): Promise<Post[]> {
-  const { data: follows } = await supabase
-    .from('user_model_follows')
-    .select('vehicle_model_id');
+  const [{ data: modelFollows }, { data: makeFollows }] = await Promise.all([
+    supabase.from('user_model_follows').select('vehicle_model_id'),
+    supabase.from('user_make_follows').select('vehicle_make_id'),
+  ]);
 
-  const modelIds = (follows ?? [])
-    .map((f: any) => f.vehicle_model_id)
-    .filter(Boolean);
+  const modelIds = (modelFollows ?? []).map((f: any) => f.vehicle_model_id).filter(Boolean);
+  const makeIds = (makeFollows ?? []).map((f: any) => f.vehicle_make_id).filter(Boolean);
 
-  if (modelIds.length === 0) return [];
+  if (modelIds.length === 0 && makeIds.length === 0) return [];
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('posts')
     .select(POST_SELECT)
-    .in('vehicle_model_id', modelIds)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
+
+  if (modelIds.length > 0 && makeIds.length > 0) {
+    query = query.or(
+      `vehicle_model_id.in.(${modelIds.join(',')}),vehicle_make_id.in.(${makeIds.join(',')})`
+    );
+  } else if (modelIds.length > 0) {
+    query = query.in('vehicle_model_id', modelIds);
+  } else {
+    query = query.in('vehicle_make_id', makeIds);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data || []) as unknown as Post[];
 }

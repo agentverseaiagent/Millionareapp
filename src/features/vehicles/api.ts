@@ -159,6 +159,54 @@ export async function getVehicleModelBySlug(slug: string): Promise<VehicleModel 
   return data as VehicleModel;
 }
 
+export async function followMake(vehicleMakeId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  const { error } = await supabase
+    .from('user_make_follows')
+    .insert({ user_id: user.id, vehicle_make_id: vehicleMakeId });
+  if (error) throw error;
+}
+
+export async function unfollowMake(vehicleMakeId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  const { error } = await supabase
+    .from('user_make_follows')
+    .delete()
+    .eq('vehicle_make_id', vehicleMakeId)
+    .eq('user_id', user.id);
+  if (error) throw error;
+}
+
+export async function isFollowingMake(vehicleMakeId: string): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data } = await supabase
+    .from('user_make_follows')
+    .select('vehicle_make_id')
+    .eq('vehicle_make_id', vehicleMakeId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+  return !!data;
+}
+
+export async function getFollowedMakes(): Promise<VehicleSearchResult[]> {
+  const { data, error } = await supabase
+    .from('user_make_follows')
+    .select('vehicle_make_id, vehicle_makes!inner(id, name, slug)');
+  if (error) throw error;
+  return (data || []).map((row: any) => ({
+    id: row.vehicle_makes.id,
+    name: row.vehicle_makes.name,
+    slug: row.vehicle_makes.slug,
+    make_name: row.vehicle_makes.name,
+    make_id: row.vehicle_makes.id,
+    display_name: row.vehicle_makes.name,
+    is_make_result: true,
+  }));
+}
+
 export async function followModel(vehicleModelId: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
