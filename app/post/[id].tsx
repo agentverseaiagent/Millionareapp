@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -37,6 +37,9 @@ const C = {
   inputBg: '#F5F5F5',
 };
 
+type ReplyTarget = { parentCommentId: string; username: string | null };
+type FlatComment = PostComment & { isNested: boolean };
+
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -45,6 +48,7 @@ export default function PostScreen() {
   const [comments, setComments] = useState<PostComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [replyText, setReplyText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<ReplyTarget | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [replyError, setReplyError] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
@@ -56,21 +60,52 @@ export default function PostScreen() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Build flat render list: top-level comments followed immediately by their replies.
+  // Replies to replies are treated as siblings under the same top-level comment (one level max).
+  const flatComments = useMemo<FlatComment[]>(() => {
+    const topLevel = comments.filter(c => !c.parent_comment_id);
+    const byParent = new Map<string, PostComment[]>();
+    for (const c of comments) {
+      if (c.parent_comment_id) {
+        const arr = byParent.get(c.parent_comment_id) ?? [];
+        arr.push(c);
+        byParent.set(c.parent_comment_id, arr);
+      }
+    }
+    const result: FlatComment[] = [];
+    for (const c of topLevel) {
+      result.push({ ...c, isNested: false });
+      for (const r of (byParent.get(c.id) ?? [])) {
+        result.push({ ...r, isNested: true });
+      }
+    }
+    return result;
+  }, [comments]);
+
   const handleReply = useCallback(async () => {
     if (!replyText.trim() || !id) return;
     setReplyError(null);
     setSubmitting(true);
     try {
-      const comment = await createComment(id, replyText.trim());
+      const comment = await createComment(id, replyText.trim(), replyingTo?.parentCommentId);
       setComments(prev => [...prev, comment]);
       setReplyText('');
+      setReplyingTo(null);
       inputRef.current?.blur();
     } catch (err: any) {
       setReplyError(err?.message ?? 'Failed to post reply. Tap to retry.');
     } finally {
       setSubmitting(false);
     }
-  }, [id, replyText]);
+  }, [id, replyText, replyingTo]);
+
+  const handlePressReply = useCallback((item: FlatComment) => {
+    // Always target the top-level ancestor so nesting stays at one level.
+    const parentCommentId = item.parent_comment_id ?? item.id;
+    setReplyingTo({ parentCommentId, username: item.author?.username ?? null });
+    setReplyError(null);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, []);
 
   if (loading) {
     return (
@@ -111,7 +146,6 @@ export default function PostScreen() {
 
   const PostHeader = (
     <View style={styles.postBlock}>
-      {/* Vehicle tags */}
       {vehicles.length > 0 && (
         <View style={styles.vehicleTagRow}>
           {vehicles.map((v, i) =>
@@ -132,10 +166,8 @@ export default function PostScreen() {
         </View>
       )}
 
-      {/* Body */}
       <Text style={styles.postBody}>{post.body}</Text>
 
-      {/* Footer row */}
       <View style={styles.postFooter}>
         <View style={styles.categoryBadges}>
           {cats.map(cat => {
@@ -153,7 +185,6 @@ export default function PostScreen() {
         <Text style={styles.postTime}>{relativeTime(post.created_at)}</Text>
       </View>
 
-      {/* Comment count divider */}
       <View style={styles.commentHeader}>
         <Text style={styles.commentHeaderText}>
           {comments.length === 0 ? 'No replies yet' : `${comments.length} ${comments.length === 1 ? 'Reply' : 'Replies'}`}
@@ -179,16 +210,27 @@ export default function PostScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <FlatList
-          data={comments}
+          data={flatComments}
           keyExtractor={item => item.id}
           ListHeaderComponent={PostHeader}
           renderItem={({ item }) => (
-            <View style={styles.commentRow}>
-              {item.author?.username && (
-                <Text style={styles.commentAuthor}>@{item.author.username}</Text>
-              )}
-              <Text style={styles.commentBody}>{item.body}</Text>
-              <Text style={styles.commentTime}>{relativeTime(item.created_at)}</Text>
+            <View style={[styles.commentRow, item.isNested && styles.commentRowNested]}>
+              {item.isNested && <View style={styles.nestedBar} />}
+              <View style={styles.commentContent}>
+                {item.author?.username && (
+                  <Text style={styles.commentAuthor}>@{item.author.username}</Text>
+                )}
+                <Text style={styles.commentBody}>{item.body}</Text>
+                <View style={styles.commentFooter}>
+                  <Text style={styles.commentTime}>{relativeTime(item.created_at)}</Text>
+                  <TouchableOpacity
+                    onPress={() => handlePressReply(item)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={styles.replyTrigger}>Reply</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           )}
           ListEmptyComponent={null}
@@ -197,8 +239,17 @@ export default function PostScreen() {
           keyboardDismissMode="interactive"
         />
 
-        {/* Reply input */}
         <View style={[styles.replyBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+          {replyingTo && (
+            <View style={styles.replyingToChip}>
+              <Text style={styles.replyingToText}>
+                Replying to {replyingTo.username ? `@${replyingTo.username}` : 'comment'}
+              </Text>
+              <TouchableOpacity onPress={() => setReplyingTo(null)}>
+                <Text style={styles.replyingToClear}>×</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           {replyError && (
             <Text style={styles.replyError} onPress={handleReply}>
               {replyError}
@@ -208,7 +259,7 @@ export default function PostScreen() {
             <TextInput
               ref={inputRef}
               style={styles.replyInput}
-              placeholder="Add a reply…"
+              placeholder={replyingTo ? `Reply to ${replyingTo.username ? `@${replyingTo.username}` : 'comment'}…` : 'Add a reply…'}
               placeholderTextColor={C.textFaint}
               value={replyText}
               onChangeText={text => { setReplyText(text); setReplyError(null); }}
@@ -312,26 +363,51 @@ const styles = StyleSheet.create({
 
   // Comment rows
   commentRow: {
+    flexDirection: 'row',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
-    gap: 6,
+  },
+  commentRowNested: {
+    paddingLeft: 16,
+    backgroundColor: '#FAFAFA',
+  },
+  nestedBar: {
+    width: 2,
+    borderRadius: 2,
+    backgroundColor: C.border,
+    marginRight: 10,
+    alignSelf: 'stretch',
+  },
+  commentContent: {
+    flex: 1,
+    gap: 4,
   },
   commentAuthor: {
     fontSize: 12,
     fontWeight: '600',
     color: C.textMuted,
-    marginBottom: 3,
   },
   commentBody: {
     fontSize: 15,
     color: C.text,
     lineHeight: 21,
   },
+  commentFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginTop: 2,
+  },
   commentTime: {
     fontSize: 11,
     color: C.textFaint,
+  },
+  replyTrigger: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: C.textMuted,
   },
 
   // Reply bar
@@ -341,6 +417,26 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg,
     paddingHorizontal: 12,
     paddingTop: 8,
+  },
+  replyingToChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFF4EE',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginBottom: 6,
+  },
+  replyingToText: {
+    fontSize: 12,
+    color: C.accent,
+    fontWeight: '500',
+  },
+  replyingToClear: {
+    fontSize: 16,
+    color: C.textMuted,
+    paddingHorizontal: 4,
   },
   replyRow: {
     flexDirection: 'row',

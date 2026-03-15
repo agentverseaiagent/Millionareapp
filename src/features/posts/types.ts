@@ -81,6 +81,7 @@ export interface PostComment {
   author_id: string;
   body: string;
   created_at: string;
+  parent_comment_id?: string | null;
   author?: { username: string | null } | null;
 }
 

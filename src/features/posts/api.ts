@@ -77,7 +77,7 @@ export async function getPostById(id: string): Promise<Post | null> {
   return data as unknown as Post;
 }
 
-const COMMENT_SELECT = 'id, post_id, author_id, body, created_at, author:profiles!author_id(username)';
+const COMMENT_SELECT = 'id, post_id, author_id, body, created_at, parent_comment_id, author:profiles!author_id(username)';
 
 export async function getPostComments(postId: string): Promise<PostComment[]> {
   const { data, error } = await supabase
@@ -89,12 +89,21 @@ export async function getPostComments(postId: string): Promise<PostComment[]> {
   return (data || []) as unknown as PostComment[];
 }
 
-export async function createComment(postId: string, body: string): Promise<PostComment> {
+export async function createComment(
+  postId: string,
+  body: string,
+  parentCommentId?: string,
+): Promise<PostComment> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
   const { data, error } = await supabase
     .from('post_comments')
-    .insert({ post_id: postId, author_id: user.id, body: body.trim() })
+    .insert({
+      post_id: postId,
+      author_id: user.id,
+      body: body.trim(),
+      parent_comment_id: parentCommentId ?? null,
+    })
     .select(COMMENT_SELECT)
     .single();
   if (error) throw error;
