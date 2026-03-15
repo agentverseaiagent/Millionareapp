@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { signUp } from '../../src/features/auth/api';
 
 const C = {
@@ -47,6 +47,7 @@ function parseSignUpError(message: string): string {
 }
 
 export default function SignUpScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -57,8 +58,11 @@ export default function SignUpScreen() {
     setError(null);
     setLoading(true);
     try {
-      await signUp(email.trim(), password);
-      setSent(true);
+      const data = await signUp(email.trim(), password);
+      // If auto-confirm is on, Supabase returns a session immediately.
+      // The auth listener in _layout.tsx will route to tabs automatically.
+      // Only show "check your email" when no session (confirmation required).
+      if (!data.session) setSent(true);
     } catch (err: any) {
       setError(parseSignUpError(err.message ?? 'Something went wrong.'));
     } finally {
@@ -76,8 +80,15 @@ export default function SignUpScreen() {
           <Text style={{ color: C.text }}>{email}</Text>
         </Text>
         <Text style={styles.successHint}>
-          Click the link in the email to activate your account.
+          Click the link in the email to activate your account.{'\n'}
+          Check your spam folder if you don't see it.
         </Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.replace('/(auth)/sign-in')}
+        >
+          <Text style={styles.backButtonText}>Back to Sign In</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -245,5 +256,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 19,
     marginTop: 4,
+  },
+  backButton: {
+    marginTop: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.surface,
+  },
+  backButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: C.text,
+    textAlign: 'center',
   },
 });
