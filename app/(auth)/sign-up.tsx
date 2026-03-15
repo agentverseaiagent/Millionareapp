@@ -38,6 +38,9 @@ export default function SignUpScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <Text style={styles.appName}>Garagetwits</Text>
+      <Text style={styles.appSubtitle}>Car communities by model</Text>
+
       <Text style={styles.title}>Create Account</Text>
 
       {error && <Text style={styles.error}>{error}</Text>}
@@ -84,10 +87,21 @@ const styles = StyleSheet.create({
     padding: 24,
     backgroundColor: '#fff',
   },
+  appName: {
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  appSubtitle: {
+    fontSize: 14,
+    color: '#888',
+    marginBottom: 36,
+  },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '700',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   input: {
     borderWidth: 1,

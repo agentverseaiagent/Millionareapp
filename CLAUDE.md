@@ -70,6 +70,18 @@ Priority UX traits:
 - Strong safety
 - Low-bug implementation
 
+## Context Files
+
+Before implementing any feature, read these files:
+- `CLAUDE.md` — workflow rules, architecture rules, UX direction
+- `PROJECT_CONTEXT.md` — what the app is, who it's for, what it does
+- `DECISIONS.md` — locked technical and product decisions
+- `TASKS.md` — current ordered roadmap
+
+After each completed stable unit of work:
+- Update `TASKS.md` to mark completed items or adjust priorities
+- Update `WORKLOG.md` with a brief entry describing what was done
+
 ## Project Rules
 
 - Tech stack: Expo, React Native, Expo Router, TypeScript, Supabase.
