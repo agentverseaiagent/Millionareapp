@@ -4,18 +4,35 @@ Reverse-chronological log of completed stable work units.
 
 ---
 
+## 2026-03-15 (session 6 — vehicle attachment implementation)
+
+- Schema migration applied: `vehicle_trims` table created with RLS; `vehicle_make_id`, `vehicle_trim_id`, `vehicle_year` added to posts
+- Updated `src/features/vehicles/types.ts`: added `VehicleTrim` interface, added `make_id` and `is_make_result` to `VehicleSearchResult`
+- Updated `src/features/posts/types.ts`: added `vehicle_make_id`, `vehicle_trim_id`, `vehicle_year` to `Post`; added same to `CreatePostInput`
+- Updated `src/features/vehicles/api.ts`: include make id in all model queries, prepend make-level result in search when query matches a make, added `getTrimsForModel()`
+- Updated `src/features/posts/api.ts`: expanded `POST_SELECT` with make/trim/year joins, `createPost` now persists all four attachment fields
+- Rewrote `app/(tabs)/create.tsx`: cascading vehicle picker — search returns make-level and model-level results, selecting a model loads trim chips, year is an optional text input, all fields passed to API
+- Updated `src/components/PostCard.tsx`: vehicle label now composes make · model · trim · year; make-only posts show non-tappable tag
+- Updated `app/post/[id].tsx`: same vehicle label logic as PostCard
+- Updated `app/vehicle/[slug].tsx`: passes `preMakeId` when navigating to create screen
+- Updated all five context files
+
+Supabase access token stored in memory — migrations can now be pushed without manual steps.
+
+---
+
 ## 2026-03-15 (session 5 — product direction update)
 
 - Updated CLAUDE.md: added vehicle attachment hierarchy (make/model/trim/year), clarified navigation UX rules, removed temporary notes
 - Updated PROJECT_CONTEXT.md: added vehicle attachment direction, noted model-only posting is being reconsidered, added known product issues
-- Updated DECISIONS.md: added vehicle attachment decisions (make-only allowed, trim/year are metadata not communities), trim data source (EPA fueleconomy.gov), planned schema shape
+- Updated DECISIONS.md: added vehicle attachment decisions (make-only allowed, trim/year are metadata not communities), trim data source direction, planned schema shape
 - Updated TASKS.md: added vehicle attachment workstream as next major feature
 - Updated WORKLOG.md
 
-Known issues noted (not yet fixed):
+Known issues at time of this session (not yet fixed):
 - Follow/unfollow state does not update immediately in profile/following views
 - Back navigation behavior needs audit in several flows
-- Search does not yet return a make-level page for pure make queries (e.g. "honda" returns models, not a Honda page)
+- Search did not return a make-level result for pure make queries
 - Vehicle attachment structure being redesigned from model-only to make/model/trim/year
 
 ---

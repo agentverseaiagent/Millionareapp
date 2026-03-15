@@ -29,33 +29,35 @@ Ordered list of upcoming work. Update this file as tasks are completed or priori
 - [x] Model-page posting flow passes pre-selected model to create screen
 - [x] Reply error handling (inline error message instead of silent failure)
 - [x] category 'general' added to all styling surfaces
+- [x] Vehicle attachment schema: vehicle_trims table, vehicle_make_id / vehicle_trim_id / vehicle_year on posts
+- [x] Vehicle attachment types: VehicleTrim, make_id + is_make_result on VehicleSearchResult, full Post shape
+- [x] Posts API: fetches and persists make / trim / year fields
+- [x] Search: prepends make-level result when query matches a make exactly
+- [x] Create screen: cascading vehicle picker (make-only or model), trim chips, year input
+- [x] Post display: vehicle label shows make · model · trim · year
 
 ---
 
 ## Active Workstreams
 
-### 1. Rework app shell, navigation, and feed UX
+Work must proceed in this order. Core product feel must be correct before feature expansion.
+
+### 1. App shell, navigation, and feed UX
 - [ ] Audit all back/cancel navigation paths for correctness
 - [ ] Fix follow/unfollow state not updating immediately in profile and following feed
 - [ ] Review feed header identity and rhythm
 - [ ] Show author username in posts (requires profile username feature)
 - [ ] Pagination for feeds (load more as user scrolls)
 
-### 2. Rework search and vehicle-catalog discovery
-- [ ] Audit alias table for coverage gaps (common nicknames not resolving)
-- [ ] Support make-level discovery in search (return make page, not just models)
+### 2. Search and vehicle-catalog discovery
+- [ ] Add make alias support (e.g. "chevy" → Chevrolet)
+- [ ] Audit alias table for coverage gaps
+- [ ] Dedicated make-level browse/community page (currently only a search result, not a real page)
 - [ ] Validate discontinued model coverage in catalog
-- [ ] Add make alias support (e.g., "chevy" → Chevrolet)
 
-### 3. Vehicle attachment — make / model / trim / year
-This is the next major feature.
-- [ ] Schema migration: add `vehicle_make_id`, `vehicle_trim_id`, `vehicle_year` to posts
-- [ ] Add `vehicle_trims` table
-- [ ] Update TypeScript types for new post shape
-- [ ] Update post creation UI: cascading make → model → trim → year picker
-- [ ] Update search and API to support make-level queries returning a make page
-- [ ] Source trim data (EPA fueleconomy.gov API preferred for U.S. trims)
-- [ ] Update feed/post display to show make-only or trim/year-qualified vehicle attachment
+### 3. Vehicle attachment — remaining work
+- [ ] Seed trim data (source to be determined — EPA fueleconomy.gov is a candidate)
+- [ ] Make-level community page with posts filtered by make
 
 ### 4. User profile and identity
 - [ ] Allow users to set a display username

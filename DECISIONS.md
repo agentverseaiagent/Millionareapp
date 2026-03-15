@@ -27,15 +27,14 @@ These decisions are final and should not be revisited without explicit instructi
 
 ## Community Structure
 - The canonical community is the vehicle model — one model, one community
-- Make-level pages may exist for browsing, but the canonical community anchor is the model
+- Make-level pages may exist for browsing and broad discussion, but the primary community anchor is the model
 - Trims and years do not get their own separate community feeds — they are filter/annotation layers
 - Community fragmentation must be avoided
 
 ## Data Model
 - Vehicle communities are based on canonical `vehicle_model_id` records — not free text
-- User-entered aliases ("crv", "cr-v", "honda crv") must be normalized to one canonical vehicle model
-- Posts will eventually carry: `vehicle_make_id`, `vehicle_model_id` (nullable), `vehicle_trim_id` (nullable), `vehicle_year` (nullable SMALLINT)
-- This schema change is planned but not yet implemented
+- User-entered aliases ("crv", "cr-v", "honda crv") must be normalized to one canonical make or model
+- Posts carry: `vehicle_make_id`, `vehicle_model_id` (nullable), `vehicle_trim_id` (nullable), `vehicle_year` (nullable SMALLINT)
 
 ## Post Categories
 - `general` is the default fallback post category
@@ -56,11 +55,9 @@ These decisions are final and should not be revisited without explicit instructi
 - No duplicate logic across files
 
 ## Trims and Year Data
-- Trim support is planned but not yet implemented
-- When implemented: `vehicle_trims` table with `(model_id, name, normalized_name, is_active)`
-- Year data will be a SMALLINT on the post — no separate year table needed
-- Trim data sourcing: EPA fuel economy API (fueleconomy.gov) is the preferred source for U.S. trim data by year
-- Trim/year feature scope will be defined when implementation begins
+- Trims are stored in `vehicle_trims`, keyed to `vehicle_models` — schema is implemented
+- Year is a SMALLINT on the post — no separate year table
+- Trim data must come from a reliable, structured U.S. source — exact source is not locked
 
 ## Current Phase
 Rework and polish of core product feel — not blind feature expansion.

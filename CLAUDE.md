@@ -18,7 +18,7 @@ Repository: https://github.com/agentverseaiagent/Millionareapp
 - **Name:** Garagetwits
 - **Focus:** U.S. car market
 - **Inspiration:** Stocktwits-style feed rhythm applied to car ownership — not a clone
-- **Core concept:** Model-centric communities with optional structured vehicle attachment
+- **Core concept:** Vehicle model communities; posts can attach at any level of the vehicle hierarchy
 
 ## Product Purpose
 
@@ -35,17 +35,18 @@ This is not a generic social network, marketplace, or dealer CRM.
 ## Vehicle Attachment
 
 Posts support optional structured vehicle attachment in the following hierarchy:
-- Make (e.g. Honda)
+- Make only (e.g. Honda)
 - Make + Model (e.g. Honda CR-V)
 - Make + Model + Trim (e.g. Honda CR-V EX-L)
 - Make + Model + Trim + Year (e.g. 2025 Honda CR-V EX-L)
 
 Rules:
+- A post does not need to attach to any vehicle
 - Make can be attached without a model
 - Model requires a make
 - Trim requires a model
-- Year can be added at any level but is most meaningful with trim
-- Trim and year are structured metadata — they do not automatically create separate top-level communities
+- Year can be added at any attachment level
+- Trim and year are structured metadata — they do not create separate top-level communities
 
 ## Vehicle Search and Discovery
 
@@ -53,16 +54,16 @@ Search must support all of these:
 - Make discovery: `honda`, `bmw`, `toyota`
 - Model discovery: `crv`, `rogue`, `cx5`
 - Make + model queries: `honda crv`, `toyota rav4`
-- Alias normalization: `cr-v`, `crv`, `CR-V` → same canonical model
+- Alias normalization: `cr-v`, `crv`, `CR-V` → same canonical model; `chevy` → Chevrolet
 
-Active U.S.-relevant models are prioritized. Discontinued models must not be deleted blindly — owners of discontinued models are part of the community.
+Active U.S.-relevant models are prioritized. Discontinued models must not be deleted — owners of discontinued models are part of the community.
 
 ## Core Product Constraints
 
-- Vehicle communities are anchored on canonical `vehicle_model_id` records — not free text
-- User-entered aliases must normalize to one canonical vehicle model
-- Community fragmentation must be avoided — one model, one community
-- Trims and years are annotation layers — they do not splinter the community
+- The canonical community unit is the vehicle model — one model, one community
+- Posts do not require a model; make-only or unattached posts are valid
+- User-entered aliases must normalize to one canonical make or model — not free text
+- Community fragmentation must be avoided — trims and years are annotation layers, not community splits
 - Keep route files thin — compose screens and call hooks only
 - All Supabase queries must live in `src/features/**/api.ts`
 - Shared types go in `src/features/**/types.ts`
