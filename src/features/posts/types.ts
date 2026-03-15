@@ -1,4 +1,5 @@
 export type PostCategory =
+  | 'general'
   | 'price_paid'
   | 'lease_finance'
   | 'issue'
@@ -7,6 +8,7 @@ export type PostCategory =
   | 'question';
 
 export const POST_CATEGORIES: { value: PostCategory; label: string }[] = [
+  { value: 'general', label: 'General' },
   { value: 'price_paid', label: 'Price Paid' },
   { value: 'lease_finance', label: 'Lease/Finance' },
   { value: 'issue', label: 'Issue' },
@@ -16,6 +18,7 @@ export const POST_CATEGORIES: { value: PostCategory; label: string }[] = [
 ];
 
 export const CATEGORY_LABELS: Record<PostCategory, string> = {
+  general: 'General',
   price_paid: 'Price Paid',
   lease_finance: 'Lease/Finance',
   issue: 'Issue',
