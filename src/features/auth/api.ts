@@ -5,7 +5,8 @@ export async function signUp(email: string, password: string) {
     email,
     password,
     options: {
-      emailRedirectTo: 'garagetwits://',
+      // Must match Supabase Auth > URL Configuration > Redirect URLs allow list
+      emailRedirectTo: 'garagetwits://auth/confirm',
     },
   });
   if (error) throw error;
