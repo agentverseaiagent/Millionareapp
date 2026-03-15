@@ -25,7 +25,7 @@ const C = {
   accent: '#E05A00',
   text: '#F0F0F0',
   textMuted: '#888',
-  textFaint: '#555',
+  textFaint: '#444',
   inputBg: '#141414',
 };
 
@@ -50,6 +50,10 @@ export default function CreateScreen() {
   const [searchingModel, setSearchingModel] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleCancel = useCallback(() => {
+    router.replace('/(tabs)');
+  }, [router]);
 
   const handleModelSearch = useCallback(async (text: string) => {
     setModelQuery(text);
@@ -105,11 +109,37 @@ export default function CreateScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
-      <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+      {/* ── Top action bar — always visible ── */}
+      <View style={styles.actionBar}>
+        <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
+          <Text style={styles.cancelText}>Cancel</Text>
+        </TouchableOpacity>
 
-        {/* Body input */}
+        <Text style={styles.actionBarTitle}>New Post</Text>
+
+        <TouchableOpacity
+          style={[styles.postBtn, !canPost && styles.postBtnDisabled]}
+          onPress={handleSubmit}
+          disabled={!canPost}
+        >
+          {submitting
+            ? <ActivityIndicator color="#fff" size="small" />
+            : <Text style={styles.postBtnText}>Post</Text>
+          }
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Scrollable form body ── */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+      >
+        {/* Body */}
         <TextInput
           style={styles.bodyInput}
           placeholder="Share your experience, question, or insight…"
@@ -120,14 +150,13 @@ export default function CreateScreen() {
           maxLength={MAX_BODY}
           textAlignVertical="top"
         />
-        <Text style={[styles.charCount, charsLeft < 50 && styles.charCountWarning]}>
+        <Text style={[styles.charCount, charsLeft < 50 && styles.charCountWarn]}>
           {charsLeft}
         </Text>
 
-        {/* Divider */}
         <View style={styles.divider} />
 
-        {/* Vehicle picker */}
+        {/* Vehicle */}
         <Text style={styles.sectionLabel}>Vehicle</Text>
         {selectedModel ? (
           <View style={styles.selectedModel}>
@@ -135,9 +164,7 @@ export default function CreateScreen() {
               <Text style={styles.selectedMake}>{selectedModel.make_name}</Text>
               <Text style={styles.selectedModelName}>{selectedModel.name}</Text>
             </View>
-            <TouchableOpacity
-              onPress={() => { setSelectedModel(null); setModelQuery(''); }}
-            >
+            <TouchableOpacity onPress={() => { setSelectedModel(null); setModelQuery(''); }}>
               <Ionicons name="close-circle" size={22} color={C.textMuted} />
             </TouchableOpacity>
           </View>
@@ -155,7 +182,7 @@ export default function CreateScreen() {
             {searchingModel && (
               <ActivityIndicator size="small" color={C.accent} style={styles.smallLoader} />
             )}
-            {modelResults.slice(0, 6).map(item => (
+            {modelResults.slice(0, 5).map(item => (
               <TouchableOpacity
                 key={item.id}
                 style={styles.modelOption}
@@ -168,7 +195,6 @@ export default function CreateScreen() {
           </>
         )}
 
-        {/* Divider */}
         <View style={styles.divider} />
 
         {/* Category */}
@@ -180,10 +206,7 @@ export default function CreateScreen() {
             return (
               <TouchableOpacity
                 key={cat.value}
-                style={[
-                  styles.chip,
-                  active && { borderColor: color, backgroundColor: `${color}18` },
-                ]}
+                style={[styles.chip, active && { borderColor: color, backgroundColor: `${color}18` }]}
                 onPress={() => setCategory(category === cat.value ? null : cat.value)}
               >
                 <Text style={[styles.chipText, active && { color }]}>
@@ -195,33 +218,68 @@ export default function CreateScreen() {
         </View>
 
         {error && <Text style={styles.error}>{error}</Text>}
-
-        <TouchableOpacity
-          style={[styles.submitButton, !canPost && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={!canPost}
-        >
-          {submitting
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.submitButtonText}>Post</Text>
-          }
-        </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0F0F0F' },
-  container: {
+  root: {
     flex: 1,
     backgroundColor: C.bg,
+  },
+  actionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    backgroundColor: C.bg,
+  },
+  cancelBtn: {
+    paddingVertical: 6,
+    paddingRight: 12,
+    minWidth: 60,
+  },
+  cancelText: {
+    fontSize: 16,
+    color: C.textMuted,
+  },
+  actionBarTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 15,
+    fontWeight: '700',
+    color: C.text,
+  },
+  postBtn: {
+    backgroundColor: C.accent,
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  postBtnDisabled: {
+    backgroundColor: '#2A2A2A',
+  },
+  postBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: 16,
+    paddingBottom: 40,
   },
   bodyInput: {
     fontSize: 17,
     color: C.text,
-    minHeight: 130,
+    minHeight: 120,
     lineHeight: 25,
     paddingTop: 4,
   },
@@ -231,7 +289,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginBottom: 4,
   },
-  charCountWarning: {
+  charCountWarn: {
     color: '#F87171',
   },
   divider: {
@@ -319,22 +377,5 @@ const styles = StyleSheet.create({
     color: '#F87171',
     fontSize: 14,
     marginTop: 14,
-  },
-  submitButton: {
-    backgroundColor: C.accent,
-    borderRadius: 10,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 28,
-    marginBottom: 40,
-  },
-  submitButtonDisabled: {
-    backgroundColor: '#333',
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.2,
   },
 });
