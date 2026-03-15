@@ -32,7 +32,7 @@ export function VehicleModelItem({ item, onPress, followState }: Props) {
           <Ionicons name="car-outline" size={18} color={C.accent} style={styles.makeIcon} />
           <View style={styles.content}>
             <Text style={styles.makeName}>{item.name}</Text>
-            <Text style={styles.makeSub}>Browse all {item.name} models</Text>
+            <Text style={styles.makeSub}>View {item.name} posts & models</Text>
           </View>
         </TouchableOpacity>
 
