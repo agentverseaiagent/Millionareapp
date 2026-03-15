@@ -37,8 +37,15 @@ export default function SearchScreen() {
   }, [search]);
 
   const handleSelect = useCallback((item: VehicleSearchResult) => {
+    if (item.is_make_result) {
+      // No make page yet — scope the search to show all models for this make
+      const makeQuery = item.name + ' ';
+      setQuery(makeQuery);
+      search(makeQuery);
+      return;
+    }
     router.push(`/vehicle/${item.slug}`);
-  }, [router]);
+  }, [router, search]);
 
   return (
     <KeyboardAvoidingView
@@ -85,7 +92,7 @@ export default function SearchScreen() {
 
       <FlatList
         data={results}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.is_make_result ? `make_${item.id}` : item.id}
         renderItem={({ item }) => <VehicleModelItem item={item} onPress={handleSelect} />}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
