@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init:*)",
+      "Bash(git config:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "WebSearch",
+      "WebFetch",
+      "Bash(source:*)",
+      "Bash(export:*)",
+      "Bash(curl:*)",
+      "Bash(jq:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(echo:*)",
+      "Bash(which:*)",
+      "Bash(wc:*)",
+      "Bash(file:*)",
+      "Bash(pwd:*)",
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(find:*)",
+      "Bash(sort:*)",
+      "Bash(tree:*)",
+      "Bash(diff:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(cp -r /c/Users/babad/Desktop/temp_expo/. /c/Users/babad/Desktop/Millionareapp/)",
+      "Bash(rm -rf /c/Users/babad/Desktop/temp_expo)"
+    ]
+  }
+}
