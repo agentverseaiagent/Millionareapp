@@ -14,6 +14,62 @@ This project uses GitHub for version control. This is a strict requirement:
 
 Repository: https://github.com/agentverseaiagent/Millionareapp
 
+## Project Goal
+
+This project is a universal Expo app for iOS, Android, and web.
+
+The app name is **Garagetwits**.
+
+Garagetwits is a Stocktwits-inspired car community app, but centered on canonical vehicle model communities instead of stock symbols.
+
+Users should be able to:
+- Search for a car model
+- Enter that model's community feed
+- Read useful short posts
+- Create posts tied to a canonical vehicle model
+- Follow vehicle models
+
+## Product Purpose
+
+Garagetwits helps car shoppers and owners exchange model-specific intelligence in one place.
+
+Primary value:
+- Price paid discussion
+- Lease and finance discussion
+- Ownership issues
+- Maintenance experiences
+- Buying advice
+
+This is not a generic social network.
+This is not a marketplace.
+This is not a dealer CRM.
+
+## Core Product Constraints
+
+- Vehicle communities must be based on canonical `vehicle_model_id` records
+- User-entered aliases like "crv", "cr-v", and "honda crv" must map to one canonical vehicle model
+- Avoid fragmentation of communities
+- Keep route files thin
+- Keep Supabase access inside feature modules
+- Keep the app compatible with iOS, Android, and web
+
+## UX Direction
+
+The app should feel fast, clean, simple, nice-looking, and user-friendly.
+It should be feed-first and mobile-first, while remaining web-compatible.
+
+Priority UX traits:
+- Low friction
+- Clear navigation
+- Minimal clutter
+- Obvious primary actions
+- Useful dense information
+- No unnecessary complexity
+- Clean architecture
+- Minimal redundancy
+- Strong safety
+- Low-bug implementation
+
 ## Project Rules
 
 - Tech stack: Expo, React Native, Expo Router, TypeScript, Supabase.
