@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Text,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useVehicleSearch } from '../../src/features/vehicles/hooks';
@@ -39,7 +41,11 @@ export default function SearchScreen() {
   }, [router]);
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={90}
+    >
       <View style={styles.searchBar}>
         <TextInput
           style={styles.input}
@@ -90,7 +96,7 @@ export default function SearchScreen() {
           ) : null
         }
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
