@@ -89,7 +89,7 @@ export default function CreateScreen() {
       await createPost({
         body: body.trim(),
         vehicle_model_id: selectedModel?.id,
-        category: category ?? undefined,
+        category: category ?? 'question',
       });
       setBody('');
       setCategory(null);
