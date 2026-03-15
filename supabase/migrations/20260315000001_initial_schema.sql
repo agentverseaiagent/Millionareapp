@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS vehicle_models (
   source          TEXT        NOT NULL DEFAULT 'manual',
   source_model_id TEXT,                  -- NHTSA Model_ID (as text)
   last_synced_at  TIMESTAMPTZ,
+  last_seen_year  INTEGER,               -- most recent model year returned by NHTSA
   is_active       BOOLEAN     NOT NULL DEFAULT true,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(make_id, name)

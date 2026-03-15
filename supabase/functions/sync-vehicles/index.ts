@@ -1,29 +1,44 @@
 /**
  * sync-vehicles — Supabase Edge Function
  *
- * Syncs vehicle makes and models from the NHTSA vPIC API into the Garagetwits database.
+ * US-market focused sync using NHTSA vPIC GetModelsForMakeYear endpoint.
  *
- * Auth: accepts Authorization: Bearer <anon_key> or <service_role_key>.
- * The Supabase Edge Function scheduler sends the anon key automatically.
+ * Strategy:
+ *   - Queries each make for model years startYear–endYear (default 2005–current).
+ *   - All years for a make are fetched in parallel → fast, within timeout.
+ *   - Models are deduplicated by NHTSA Model_ID; last_seen_year tracks the
+ *     most recent model year a model appeared in.
+ *   - GetModelsForMakeYear only returns models that received a NHTSA vehicle
+ *     certification for that year, which is inherently US-market data.
+ *   - Manual seed models (source='manual') are never touched.
+ *   - Discontinued makes use an explicit endYear so we skip empty year queries.
  *
+ * Auth:     Authorization: Bearer <anon_key> or <service_role_key>
  * Deploy:   supabase functions deploy sync-vehicles --no-verify-jwt
  * Invoke:   supabase functions invoke sync-vehicles --project-ref <ref>
  * Schedule: Dashboard → Edge Functions → sync-vehicles → Schedule → "0 2 * * 0"
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { fetchModelsForMake } from './nhtsa.ts';
-import { MAKES_CONFIG } from './makes-config.ts';
+import { fetchModelsForMakeYear, type NHTSAModel } from './nhtsa.ts';
+import { MAKES_CONFIG, CURRENT_YEAR } from './makes-config.ts';
 import { toModelSlug, toNormalized } from './slug-utils.ts';
 
+const DEFAULT_START_YEAR = 2005;
+
+interface ModelEntry {
+  model: NHTSAModel;
+  lastSeenYear: number;
+}
+
 interface MakeSyncResult {
+  years_queried: number;
   models_synced: number;
   models_deactivated: number;
   error?: string;
 }
 
 Deno.serve(async (req: Request) => {
-  // Auth: require any valid bearer token (scheduler sends anon key; manual sends service key)
   const authHeader = req.headers.get('Authorization') ?? '';
   if (!authHeader.startsWith('Bearer ')) {
     return new Response('Unauthorized', { status: 401 });
@@ -31,8 +46,6 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-  // Always write with service role regardless of caller's key
   const db = createClient(supabaseUrl, serviceKey);
   const syncedAt = new Date().toISOString();
 
@@ -41,9 +54,16 @@ Deno.serve(async (req: Request) => {
   let totalDeactivated = 0;
 
   for (const make of MAKES_CONFIG) {
-    const result: MakeSyncResult = { models_synced: 0, models_deactivated: 0 };
+    const result: MakeSyncResult = {
+      years_queried: 0,
+      models_synced: 0,
+      models_deactivated: 0,
+    };
 
     try {
+      const startYear = make.startYear ?? DEFAULT_START_YEAR;
+      const endYear = make.endYear ?? CURRENT_YEAR;
+
       // ── 1. Upsert the make row ───────────────────────────────────
       const { data: makeRow, error: makeErr } = await db
         .from('vehicle_makes')
@@ -66,69 +86,87 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
-      // ── 2. Fetch models from NHTSA ───────────────────────────────
-      const nhtsaModels = await fetchModelsForMake(make.nhtsaName);
+      // ── 2. Fetch all years in parallel ───────────────────────────
+      const years: number[] = [];
+      for (let y = startYear; y <= endYear; y++) years.push(y);
+      result.years_queried = years.length;
 
-      if (nhtsaModels.length === 0) {
-        // Unknown make or API outage — do NOT deactivate existing models
-        console.warn(`NHTSA returned 0 models for ${make.slug} — skipping`);
+      const yearResults = await Promise.allSettled(
+        years.map((y) => fetchModelsForMakeYear(make.nhtsaName, y)),
+      );
+
+      // ── 3. Union models across years, tracking last_seen_year ────
+      // Key: NHTSA Model_ID (stable across years)
+      const bySourceId = new Map<string, ModelEntry>();
+
+      for (let i = 0; i < years.length; i++) {
+        const res = yearResults[i];
+        if (res.status !== 'fulfilled') continue;
+        for (const m of res.value) {
+          const id = String(m.Model_ID);
+          const existing = bySourceId.get(id);
+          if (!existing || years[i] > existing.lastSeenYear) {
+            bySourceId.set(id, { model: m, lastSeenYear: years[i] });
+          }
+        }
+      }
+
+      if (bySourceId.size === 0) {
+        // All years returned empty — API error or truly no data.
+        // Do NOT deactivate existing models (could be transient outage).
+        console.warn(`${make.slug}: 0 models across ${years.length} years — skipping deactivation`);
         results[make.slug] = result;
         continue;
       }
 
-      // ── 3. Fetch currently-active NHTSA models in our DB ────────
+      // ── 4. Fetch currently-tracked NHTSA models for this make ────
       const { data: existingModels } = await db
         .from('vehicle_models')
         .select('id, source_model_id')
         .eq('make_id', makeRow.id)
-        .eq('source', 'nhtsa')
-        .eq('is_active', true);
+        .eq('source', 'nhtsa');
 
       const existingBySourceId = new Map(
         (existingModels ?? [])
           .filter((m) => m.source_model_id)
-          .map((m) => [m.source_model_id!, m.id as string]),
+          .map((m) => [m.source_model_id! as string, m.id as string]),
       );
 
-      const returnedSourceIds = new Set<string>();
+      const returnedSourceIds = new Set(bySourceId.keys());
 
-      // ── 4. Upsert each model ─────────────────────────────────────
-      for (const m of nhtsaModels) {
-        const sourceModelId = String(m.Model_ID);
-        returnedSourceIds.add(sourceModelId);
-
-        const modelSlug = toModelSlug(make.slug, m.Model_Name);
-        const normalized = toNormalized(m.Model_Name);
-
+      // ── 5. Upsert each model ─────────────────────────────────────
+      for (const [sourceId, { model, lastSeenYear }] of bySourceId) {
         await db.from('vehicle_models').upsert(
           {
             make_id: makeRow.id,
-            name: m.Model_Name,
-            slug: modelSlug,
-            normalized_name: normalized,
+            name: model.Model_Name,
+            slug: toModelSlug(make.slug, model.Model_Name),
+            normalized_name: toNormalized(model.Model_Name),
             source: 'nhtsa',
-            source_model_id: sourceModelId,
+            source_model_id: sourceId,
             last_synced_at: syncedAt,
+            last_seen_year: lastSeenYear,
             is_active: true,
           },
           { onConflict: 'slug', ignoreDuplicates: false },
         );
       }
 
-      result.models_synced = nhtsaModels.length;
+      result.models_synced = bySourceId.size;
 
-      // ── 5. Deactivate NHTSA models not returned this sync ────────
-      const toDeactivateIds = [...existingBySourceId.entries()]
-        .filter(([sourceId]) => !returnedSourceIds.has(sourceId))
-        .map(([, id]) => id);
+      // ── 6. Deactivate NHTSA models not seen in any queried year ──
+      // These are models NHTSA no longer associates with this make in
+      // our year range — safe to mark inactive (won't delete communities).
+      const toDeactivate = [...existingBySourceId.entries()]
+        .filter(([srcId]) => !returnedSourceIds.has(srcId))
+        .map(([, dbId]) => dbId);
 
-      if (toDeactivateIds.length > 0) {
+      if (toDeactivate.length > 0) {
         await db
           .from('vehicle_models')
           .update({ is_active: false })
-          .in('id', toDeactivateIds);
-
-        result.models_deactivated = toDeactivateIds.length;
+          .in('id', toDeactivate);
+        result.models_deactivated = toDeactivate.length;
       }
 
       totalModels += result.models_synced;
@@ -139,8 +177,8 @@ Deno.serve(async (req: Request) => {
 
     results[make.slug] = result;
 
-    // Small delay to avoid hammering NHTSA
-    await new Promise((r) => setTimeout(r, 120));
+    // Brief pause between makes — NHTSA is a free public API
+    await new Promise((r) => setTimeout(r, 200));
   }
 
   const summary = {
