@@ -59,6 +59,8 @@ export interface Post {
   } | null;
   vehicle_make?: { id: string; name: string; slug: string } | null;
   vehicle_trim?: { id: string; name: string } | null;
+  // Aggregated reply count from post_comments join
+  post_comments?: { count: number }[];
 }
 
 export interface CreatePostInput {
@@ -79,4 +81,9 @@ export interface PostComment {
   author_id: string;
   body: string;
   created_at: string;
+  author?: { username: string | null } | null;
+}
+
+export interface PostCommentWithPost extends PostComment {
+  post?: { id: string; body: string; author?: { username: string | null } | null } | null;
 }

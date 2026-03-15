@@ -184,6 +184,9 @@ export default function PostScreen() {
           ListHeaderComponent={PostHeader}
           renderItem={({ item }) => (
             <View style={styles.commentRow}>
+              {item.author?.username && (
+                <Text style={styles.commentAuthor}>@{item.author.username}</Text>
+              )}
               <Text style={styles.commentBody}>{item.body}</Text>
               <Text style={styles.commentTime}>{relativeTime(item.created_at)}</Text>
             </View>
@@ -314,6 +317,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.border,
     gap: 6,
+  },
+  commentAuthor: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: C.textMuted,
+    marginBottom: 3,
   },
   commentBody: {
     fontSize: 15,

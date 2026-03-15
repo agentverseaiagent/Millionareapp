@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase';
-import type { Post, CreatePostInput, PostComment } from './types';
+import type { Post, CreatePostInput, PostComment, PostCommentWithPost } from './types';
 
 const POST_SELECT = `
   id, author_id, vehicle_make_id, vehicle_model_id, vehicle_trim_id, vehicle_year,
@@ -10,7 +10,8 @@ const POST_SELECT = `
     vehicle_makes(id, name)
   ),
   vehicle_make:vehicle_makes!vehicle_make_id(id, name, slug),
-  vehicle_trim:vehicle_trims!vehicle_trim_id(id, name)
+  vehicle_trim:vehicle_trims!vehicle_trim_id(id, name),
+  post_comments(count)
 `;
 
 export async function getGlobalFeed(limit = 30, offset = 0): Promise<Post[]> {
@@ -76,14 +77,16 @@ export async function getPostById(id: string): Promise<Post | null> {
   return data as unknown as Post;
 }
 
+const COMMENT_SELECT = 'id, post_id, author_id, body, created_at, author:profiles!author_id(username)';
+
 export async function getPostComments(postId: string): Promise<PostComment[]> {
   const { data, error } = await supabase
     .from('post_comments')
-    .select('id, post_id, author_id, body, created_at')
+    .select(COMMENT_SELECT)
     .eq('post_id', postId)
     .order('created_at', { ascending: true });
   if (error) throw error;
-  return (data || []) as PostComment[];
+  return (data || []) as unknown as PostComment[];
 }
 
 export async function createComment(postId: string, body: string): Promise<PostComment> {
@@ -92,10 +95,21 @@ export async function createComment(postId: string, body: string): Promise<PostC
   const { data, error } = await supabase
     .from('post_comments')
     .insert({ post_id: postId, author_id: user.id, body: body.trim() })
-    .select('id, post_id, author_id, body, created_at')
+    .select(COMMENT_SELECT)
     .single();
   if (error) throw error;
-  return data as PostComment;
+  return data as unknown as PostComment;
+}
+
+export async function getCommentsByAuthor(authorId: string, limit = 50, offset = 0): Promise<PostCommentWithPost[]> {
+  const { data, error } = await supabase
+    .from('post_comments')
+    .select(`${COMMENT_SELECT}, post:posts!post_id(id, body, author:profiles!author_id(username))`)
+    .eq('author_id', authorId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+  if (error) throw error;
+  return (data || []) as unknown as PostCommentWithPost[];
 }
 
 export async function deletePost(postId: string): Promise<void> {

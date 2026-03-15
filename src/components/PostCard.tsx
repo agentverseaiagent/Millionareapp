@@ -98,6 +98,15 @@ export function PostCard({ post, showModel = true, currentUserId, onDelete }: Pr
           )}
         </View>
         <View style={styles.topRight}>
+          {(() => {
+            const count = post.post_comments?.[0]?.count ?? 0;
+            return (
+              <View style={styles.replyCount}>
+                <Ionicons name="chatbubble-outline" size={11} color={C.textFaint} />
+                <Text style={styles.replyCountText}>{count}</Text>
+              </View>
+            );
+          })()}
           <Text style={styles.time}>{relativeTime(post.created_at)}</Text>
           {isOwner && (
             <TouchableOpacity
@@ -184,6 +193,8 @@ const styles = StyleSheet.create({
     gap: 8,
     flexShrink: 0,
   },
+  replyCount: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  replyCountText: { fontSize: 11, color: C.textFaint },
   time: { fontSize: 12, color: C.textFaint },
   deleteBtn: { padding: 2 },
   authorRow: {

@@ -16,10 +16,11 @@ import { supabase } from '../../src/lib/supabase';
 import { signOut, getUserProfile, updateUsername, updateAvatar } from '../../src/features/auth/api';
 import { UserAvatar } from '../../src/components/UserAvatar';
 import { getFollowedModels, getFollowedMakes, unfollowMake } from '../../src/features/vehicles/api';
-import { getPostsByAuthor, deletePost } from '../../src/features/posts/api';
+import { getPostsByAuthor, deletePost, getCommentsByAuthor } from '../../src/features/posts/api';
 import { PostCard } from '../../src/components/PostCard';
 import type { VehicleSearchResult } from '../../src/features/vehicles/types';
-import type { Post } from '../../src/features/posts/types';
+import type { Post, PostCommentWithPost } from '../../src/features/posts/types';
+import { relativeTime } from '../../src/utils/postUtils';
 
 const C = {
   bg: '#FFFFFF',
@@ -31,7 +32,7 @@ const C = {
   textFaint: '#AAAAAA',
 };
 
-type Tab = 'posts' | 'following';
+type Tab = 'posts' | 'replies' | 'following';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -54,6 +55,10 @@ export default function ProfileScreen() {
   const [myPosts, setMyPosts] = useState<Post[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
 
+  // My Replies
+  const [myReplies, setMyReplies] = useState<PostCommentWithPost[]>([]);
+  const [repliesLoading, setRepliesLoading] = useState(false);
+
   // Following
   const [followedMakes, setFollowedMakes] = useState<VehicleSearchResult[]>([]);
   const [followedModels, setFollowedModels] = useState<VehicleSearchResult[]>([]);
@@ -69,6 +74,17 @@ export default function ProfileScreen() {
       console.warn('loadPosts error:', e);
     } finally {
       setPostsLoading(false);
+    }
+  }, []);
+
+  const loadReplies = useCallback(async (uid: string) => {
+    setRepliesLoading(true);
+    try {
+      setMyReplies(await getCommentsByAuthor(uid));
+    } catch (e) {
+      console.warn('loadReplies error:', e);
+    } finally {
+      setRepliesLoading(false);
     }
   }, []);
 
@@ -91,7 +107,7 @@ export default function ProfileScreen() {
       const user = data.user;
       setEmail(user?.email ?? null);
       setUserId(user?.id ?? null);
-      if (user?.id) loadPosts(user.id);
+      if (user?.id) { loadPosts(user.id); loadReplies(user.id); }
     });
     getUserProfile().then(p => { if (p) { setUsername(p.username); setAvatarUrl(p.avatar_url); } });
     loadFollows().finally(() => { initialLoadDone.current = true; });
@@ -101,7 +117,7 @@ export default function ProfileScreen() {
     useCallback(() => {
       if (!initialLoadDone.current) return;
       loadFollows();
-      if (userId) loadPosts(userId);
+      if (userId) { loadPosts(userId); loadReplies(userId); }
     }, [loadFollows, loadPosts, userId])
   );
 
@@ -237,7 +253,13 @@ export default function ProfileScreen() {
           style={[styles.tabBtn, tab === 'posts' && styles.tabBtnActive]}
           onPress={() => setTab('posts')}
         >
-          <Text style={[styles.tabText, tab === 'posts' && styles.tabTextActive]}>My Posts</Text>
+          <Text style={[styles.tabText, tab === 'posts' && styles.tabTextActive]}>Posts</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === 'replies' && styles.tabBtnActive]}
+          onPress={() => setTab('replies')}
+        >
+          <Text style={[styles.tabText, tab === 'replies' && styles.tabTextActive]}>Replies</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tabBtn, tab === 'following' && styles.tabBtnActive]}
@@ -325,6 +347,44 @@ export default function ProfileScreen() {
         >
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // ── Replies tab ───────────────────────────────────────────────────────────
+
+  if (tab === 'replies') {
+    return (
+      <View style={styles.container}>
+        {header}
+        {repliesLoading ? (
+          <ActivityIndicator style={styles.loader} color={C.accent} />
+        ) : myReplies.length === 0 ? (
+          <View style={styles.empty}>
+            <Ionicons name="chatbubble-outline" size={40} color={C.textFaint} />
+            <Text style={styles.emptyText}>No replies yet.</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={myReplies}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.replyRow}
+                onPress={() => router.push(`/post/${item.post_id}`)}
+              >
+                {item.post?.body ? (
+                  <Text style={styles.replyContext} numberOfLines={1}>
+                    ↩ {item.post.body}
+                  </Text>
+                ) : null}
+                <Text style={styles.replyBody}>{item.body}</Text>
+                <Text style={styles.replyTime}>{relativeTime(item.created_at)}</Text>
+              </TouchableOpacity>
+            )}
+            contentContainerStyle={{ paddingBottom: 24 }}
+          />
+        )}
       </View>
     );
   }
@@ -480,6 +540,31 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   discoverButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
+  // ── Reply rows ────────────────────────────────────────────────
+  replyRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    gap: 4,
+  },
+  replyContext: {
+    fontSize: 12,
+    color: C.textFaint,
+    fontStyle: 'italic',
+    marginBottom: 2,
+  },
+  replyBody: {
+    fontSize: 15,
+    color: C.text,
+    lineHeight: 21,
+  },
+  replyTime: {
+    fontSize: 11,
+    color: C.textFaint,
+    marginTop: 4,
+  },
 
   // ── Following rows ────────────────────────────────────────────
   makeRow: {
