@@ -30,9 +30,11 @@ export async function getSession() {
 }
 
 export async function requestPasswordReset(email: string) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'garagetwits://reset-password',
-  });
+  // No redirectTo here — Supabase opens its hosted reset page in the browser.
+  // Custom scheme deep links (garagetwits://reset-password) only work in
+  // standalone/production builds, not Expo Go. When you ship a production
+  // build, set redirectTo: 'garagetwits://reset-password' to use the in-app flow.
+  const { error } = await supabase.auth.resetPasswordForEmail(email);
   if (error) throw error;
 }
 
