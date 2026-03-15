@@ -63,8 +63,8 @@ export default function RootLayout() {
   // Show blank loading screen while auth state resolves — prevents flicker
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-        <ActivityIndicator size="large" color="#000" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F0F0F' }}>
+        <ActivityIndicator size="large" color="#E05A00" />
       </View>
     );
   }
@@ -73,7 +73,7 @@ export default function RootLayout() {
     <Stack>
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="vehicle/[slug]" options={{ headerShown: false }} />
+      <Stack.Screen name="vehicle/[slug]" options={{ headerShown: true }} />
       <Stack.Screen name="reset-password" options={{ headerShown: false }} />
       <Stack.Screen name="post/[id]" options={{ title: 'Post' }} />
     </Stack>
