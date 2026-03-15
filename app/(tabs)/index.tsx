@@ -182,6 +182,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   listContent: {
+    flexGrow: 1,
     paddingBottom: 24,
   },
   refreshHintRow: {

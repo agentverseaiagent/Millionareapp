@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import type { Post, PostCategory } from '../features/posts/types';
@@ -59,10 +59,9 @@ export function PostCard({ post, showModel = true, currentUserId, onDelete }: Pr
   };
 
   return (
-    <TouchableOpacity
-      style={styles.card}
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={() => router.push(`/post/${post.id}`)}
-      activeOpacity={0.75}
     >
       {/* Vehicle tag + time + delete row */}
       <View style={styles.topRow}>
@@ -102,7 +101,7 @@ export function PostCard({ post, showModel = true, currentUserId, onDelete }: Pr
           </Text>
         </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
@@ -113,6 +112,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.border,
     backgroundColor: C.bg,
+  },
+  cardPressed: {
+    opacity: 0.75,
   },
   topRow: {
     flexDirection: 'row',
