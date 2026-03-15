@@ -16,7 +16,7 @@ export async function getGlobalFeed(limit = 30, offset = 0): Promise<Post[]> {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
   if (error) throw error;
-  return (data || []) as Post[];
+  return (data || []) as unknown as Post[];
 }
 
 export async function getFollowingFeed(limit = 30, offset = 0): Promise<Post[]> {
@@ -37,7 +37,7 @@ export async function getFollowingFeed(limit = 30, offset = 0): Promise<Post[]> 
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
   if (error) throw error;
-  return (data || []) as Post[];
+  return (data || []) as unknown as Post[];
 }
 
 export async function getModelFeed(vehicleModelId: string, limit = 30, offset = 0): Promise<Post[]> {
@@ -48,7 +48,7 @@ export async function getModelFeed(vehicleModelId: string, limit = 30, offset = 
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
   if (error) throw error;
-  return (data || []) as Post[];
+  return (data || []) as unknown as Post[];
 }
 
 export async function getPostById(id: string): Promise<Post | null> {
@@ -58,7 +58,7 @@ export async function getPostById(id: string): Promise<Post | null> {
     .eq('id', id)
     .single();
   if (error) return null;
-  return data as Post;
+  return data as unknown as Post;
 }
 
 export async function getPostComments(postId: string): Promise<PostComment[]> {
@@ -97,10 +97,10 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
       author_id: user.id,
       body: input.body.trim(),
       vehicle_model_id: input.vehicle_model_id ?? null,
-      category: input.category ?? null,
+      category: input.category ?? 'general',
     })
     .select(POST_SELECT)
     .single();
   if (error) throw error;
-  return data as Post;
+  return data as unknown as Post;
 }

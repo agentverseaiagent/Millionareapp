@@ -87,11 +87,13 @@ export default function VehicleScreen() {
   }
 
   const makeName = (model.make as any)?.name ?? '';
-  const fullName = `${makeName} ${model.name}`.trim();
+  const isDiscontinued = model.is_active === false;
+  const fullName = isDiscontinued
+    ? `${makeName} ${model.name} (Discontinued)`.trim()
+    : `${makeName} ${model.name}`.trim();
 
   return (
     <View style={styles.container}>
-      {/* Native stack header title */}
       <Stack.Screen
         options={{
           title: fullName,
@@ -129,15 +131,33 @@ export default function VehicleScreen() {
           />
         }
         ListHeaderComponent={
-          <TouchableOpacity
-            style={styles.postPrompt}
-            onPress={() => router.push('/(tabs)/create')}
-          >
-            <Text style={styles.postPromptText}>
-              Share something about the {model.name}…
-            </Text>
-            <Ionicons name="create-outline" size={16} color={C.textFaint} />
-          </TouchableOpacity>
+          <>
+            {isDiscontinued && (
+              <View style={styles.discontinuedBanner}>
+                <Ionicons name="information-circle-outline" size={15} color={C.textMuted} />
+                <Text style={styles.discontinuedBannerText}>
+                  This model has been discontinued. Community posts are still visible.
+                </Text>
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.postPrompt}
+              onPress={() => router.push({
+                pathname: '/(tabs)/create',
+                params: {
+                  preModelId: model.id,
+                  preModelSlug: model.slug,
+                  preModelName: model.name,
+                  preMakeName: makeName,
+                },
+              })}
+            >
+              <Text style={styles.postPromptText}>
+                Share something about the {model.name}…
+              </Text>
+              <Ionicons name="create-outline" size={16} color={C.textFaint} />
+            </TouchableOpacity>
+          </>
         }
         ListEmptyComponent={
           postsLoading ? (
@@ -191,6 +211,25 @@ const styles = StyleSheet.create({
   },
   followBtnTextActive: {
     color: '#fff',
+  },
+  discontinuedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 12,
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  discontinuedBannerText: {
+    flex: 1,
+    fontSize: 13,
+    color: C.textMuted,
+    lineHeight: 18,
   },
   postPrompt: {
     flexDirection: 'row',

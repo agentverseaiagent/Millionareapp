@@ -15,7 +15,7 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { getPostById, getPostComments, createComment } from '../../src/features/posts/api';
 import type { Post, PostComment } from '../../src/features/posts/types';
 import { CATEGORY_LABELS } from '../../src/features/posts/types';
-import type { PostCategory } from '../../src/features/posts/types';
+import { relativeTime, CATEGORY_STYLE } from '../../src/utils/postUtils';
 
 const C = {
   bg: '#FFFFFF',
@@ -28,28 +28,6 @@ const C = {
   inputBg: '#F5F5F5',
 };
 
-const CATEGORY_STYLE: Record<PostCategory, { bg: string; text: string }> = {
-  general:       { bg: '#F3F4F6', text: '#6B7280' },
-  price_paid:    { bg: '#ECFDF5', text: '#059669' },
-  lease_finance: { bg: '#EFF6FF', text: '#2563EB' },
-  issue:         { bg: '#FEF2F2', text: '#DC2626' },
-  maintenance:   { bg: '#FFFBEB', text: '#D97706' },
-  review:        { bg: '#F5F3FF', text: '#7C3AED' },
-  question:      { bg: '#F3F4F6', text: '#6B7280' },
-};
-
-function relativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'now';
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d`;
-  return `${Math.floor(days / 7)}w`;
-}
-
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -59,6 +37,7 @@ export default function PostScreen() {
   const [loading, setLoading] = useState(true);
   const [replyText, setReplyText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -70,14 +49,15 @@ export default function PostScreen() {
 
   const handleReply = useCallback(async () => {
     if (!replyText.trim() || !id) return;
+    setReplyError(null);
     setSubmitting(true);
     try {
       const comment = await createComment(id, replyText.trim());
       setComments(prev => [...prev, comment]);
       setReplyText('');
       inputRef.current?.blur();
-    } catch {
-      // silently ignore — user can retry
+    } catch (err: any) {
+      setReplyError(err?.message ?? 'Failed to post reply. Tap to retry.');
     } finally {
       setSubmitting(false);
     }
@@ -174,26 +154,33 @@ export default function PostScreen() {
 
         {/* Reply input */}
         <View style={[styles.replyBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-          <TextInput
-            ref={inputRef}
-            style={styles.replyInput}
-            placeholder="Add a reply…"
-            placeholderTextColor={C.textFaint}
-            value={replyText}
-            onChangeText={setReplyText}
-            maxLength={500}
-            multiline
-          />
-          <TouchableOpacity
-            style={[styles.replyBtn, (!replyText.trim() || submitting) && styles.replyBtnDisabled]}
-            onPress={handleReply}
-            disabled={!replyText.trim() || submitting}
-          >
-            {submitting
-              ? <ActivityIndicator size="small" color="#fff" />
-              : <Text style={styles.replyBtnText}>Reply</Text>
-            }
-          </TouchableOpacity>
+          {replyError && (
+            <Text style={styles.replyError} onPress={handleReply}>
+              {replyError}
+            </Text>
+          )}
+          <View style={styles.replyRow}>
+            <TextInput
+              ref={inputRef}
+              style={styles.replyInput}
+              placeholder="Add a reply…"
+              placeholderTextColor={C.textFaint}
+              value={replyText}
+              onChangeText={text => { setReplyText(text); setReplyError(null); }}
+              maxLength={500}
+              multiline
+            />
+            <TouchableOpacity
+              style={[styles.replyBtn, (!replyText.trim() || submitting) && styles.replyBtnDisabled]}
+              onPress={handleReply}
+              disabled={!replyText.trim() || submitting}
+            >
+              {submitting
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={styles.replyBtnText}>Reply</Text>
+              }
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </>
@@ -287,14 +274,21 @@ const styles = StyleSheet.create({
 
   // Reply bar
   replyBar: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 12,
-    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: C.border,
     backgroundColor: C.bg,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+  },
+  replyRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     gap: 10,
+  },
+  replyError: {
+    fontSize: 12,
+    color: '#DC2626',
+    marginBottom: 6,
   },
   replyInput: {
     flex: 1,

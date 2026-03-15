@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,11 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { createPost } from '../../src/features/posts/api';
 import { POST_CATEGORIES } from '../../src/features/posts/types';
 import type { PostCategory } from '../../src/features/posts/types';
+import { CATEGORY_ACCENT } from '../../src/utils/postUtils';
 import { searchVehicles } from '../../src/features/vehicles/api';
 import type { VehicleSearchResult } from '../../src/features/vehicles/types';
 
@@ -29,19 +30,17 @@ const C = {
   inputBg: '#F5F5F5',
 };
 
-const CATEGORY_ACCENT: Record<PostCategory, string> = {
-  price_paid:    '#059669',
-  lease_finance: '#2563EB',
-  issue:         '#DC2626',
-  maintenance:   '#D97706',
-  review:        '#7C3AED',
-  question:      '#6B7280',
-};
-
 const MAX_BODY = 500;
 
 export default function CreateScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    preModelId?: string;
+    preModelSlug?: string;
+    preModelName?: string;
+    preMakeName?: string;
+  }>();
+
   const [body, setBody] = useState('');
   const [category, setCategory] = useState<PostCategory | null>(null);
   const [selectedModel, setSelectedModel] = useState<VehicleSearchResult | null>(null);
@@ -50,6 +49,22 @@ export default function CreateScreen() {
   const [searchingModel, setSearchingModel] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Pre-select model when navigated from a vehicle page
+  useEffect(() => {
+    if (params.preModelId && params.preModelName && params.preMakeName) {
+      const model: VehicleSearchResult = {
+        id: params.preModelId,
+        name: params.preModelName,
+        slug: params.preModelSlug ?? '',
+        make_name: params.preMakeName,
+        display_name: `${params.preMakeName} ${params.preModelName}`,
+      };
+      setSelectedModel(model);
+      setModelQuery(model.display_name);
+      setModelResults([]);
+    }
+  }, [params.preModelId]);
 
   const handleCancel = useCallback(() => {
     router.replace('/(tabs)');
@@ -190,7 +205,12 @@ export default function CreateScreen() {
                 onPress={() => handleSelectModel(item)}
               >
                 <Text style={styles.modelOptionMake}>{item.make_name}</Text>
-                <Text style={styles.modelOptionName}>{item.name}</Text>
+                <View style={styles.modelOptionNameRow}>
+                  <Text style={styles.modelOptionName}>{item.name}</Text>
+                  {item.is_discontinued && (
+                    <Text style={styles.modelOptionDiscontinued}>Discontinued</Text>
+                  )}
+                </View>
               </TouchableOpacity>
             ))}
           </>
@@ -330,9 +350,19 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     marginBottom: 2,
   },
+  modelOptionNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   modelOptionName: {
     fontSize: 15,
     color: C.text,
+  },
+  modelOptionDiscontinued: {
+    fontSize: 11,
+    color: '#AAAAAA',
+    fontStyle: 'italic',
   },
   selectedModel: {
     flexDirection: 'row',

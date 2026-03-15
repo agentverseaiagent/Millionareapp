@@ -2,14 +2,17 @@ import { supabase } from '../../lib/supabase';
 import { normalizeQuery } from './utils';
 import type { VehicleModel, VehicleSearchResult } from './types';
 
+const MODEL_SELECT = 'id, name, slug, is_active, vehicle_makes!inner(name)';
+
 /**
  * Full make+model+alias search.
  *
  * Priority order:
- *   1. Alias exact match (e.g. "crv" → Honda CR-V)
- *   2. Make exact match (e.g. "honda" → top Honda models)
- *   3. Split-query make+model (e.g. "honda crv" → Honda models matching "crv")
- *   4. Model normalized-name partial match (e.g. "rogue", "tacoma")
+ *   1. Alias exact match — active and discontinued
+ *   2. Make exact/prefix match — active models first, then discontinued
+ *   3. Split-query make+model (e.g. "honda crv") — active and discontinued
+ *   4. Model name partial match — active models
+ *   5. Model name partial match — discontinued (only for non-make queries)
  */
 export async function searchVehicles(rawQuery: string): Promise<VehicleSearchResult[]> {
   const trimmed = rawQuery.trim();
@@ -31,21 +34,22 @@ export async function searchVehicles(rawQuery: string): Promise<VehicleSearchRes
       slug: row.slug,
       make_name: makeName,
       display_name: `${makeName} ${row.name}`.trim(),
+      is_discontinued: row.is_active === false,
     });
   }
 
-  // 1. Alias exact match
+  // 1. Alias exact match — active and discontinued
   const { data: aliasMatches } = await supabase
     .from('vehicle_aliases')
-    .select('vehicle_models!inner(id, name, slug, is_active, vehicle_makes!inner(name))')
+    .select(`vehicle_models!inner(${MODEL_SELECT})`)
     .eq('normalized_alias', normalized)
     .limit(5);
 
   for (const row of (aliasMatches ?? []) as any[]) {
-    if (row.vehicle_models?.is_active !== false) addModel(row.vehicle_models);
+    addModel(row.vehicle_models);
   }
 
-  // 2. Fetch all makes (small set ~44) for make-matching
+  // 2. Fetch all active makes for make-matching
   const { data: allMakes } = await supabase
     .from('vehicle_makes')
     .select('id, name, slug')
@@ -73,37 +77,58 @@ export async function searchVehicles(rawQuery: string): Promise<VehicleSearchRes
     : null;
 
   if (fullMakeMatch) {
-    // Return top models for this make sorted by name
-    const { data: makeModels } = await supabase
+    // Active models for this make first
+    const { data: activeModels } = await supabase
       .from('vehicle_models')
-      .select('id, name, slug, vehicle_makes!inner(name)')
+      .select(MODEL_SELECT)
       .eq('make_id', fullMakeMatch.id)
       .eq('is_active', true)
       .order('name')
       .limit(20);
-    for (const row of (makeModels ?? []) as any[]) addModel(row);
+    for (const row of (activeModels ?? []) as any[]) addModel(row);
+
+    // Discontinued models for this make appended after active
+    const { data: disconModels } = await supabase
+      .from('vehicle_models')
+      .select(MODEL_SELECT)
+      .eq('make_id', fullMakeMatch.id)
+      .eq('is_active', false)
+      .order('name')
+      .limit(10);
+    for (const row of (disconModels ?? []) as any[]) addModel(row);
   } else if (prefixMakeMatch && restNorm) {
-    // "honda crv" → search Honda models matching "crv"
+    // "honda crv" → search Honda models matching "crv" (active and discontinued)
     const { data: makeModels } = await supabase
       .from('vehicle_models')
-      .select('id, name, slug, vehicle_makes!inner(name)')
+      .select(MODEL_SELECT)
       .eq('make_id', prefixMakeMatch.id)
       .ilike('normalized_name', `%${restNorm}%`)
-      .eq('is_active', true)
       .order('name')
       .limit(10);
     for (const row of (makeModels ?? []) as any[]) addModel(row);
   }
 
-  // 3. Model normalized-name partial match (always runs — catches "rogue", "cx5", etc.)
-  const { data: nameMatches } = await supabase
+  // 3. Active model name partial match (always runs — catches "rogue", "cx5", etc.)
+  const { data: activeNameMatches } = await supabase
     .from('vehicle_models')
-    .select('id, name, slug, vehicle_makes!inner(name)')
+    .select(MODEL_SELECT)
     .ilike('normalized_name', `%${normalized}%`)
     .eq('is_active', true)
     .order('name')
     .limit(10);
-  for (const row of (nameMatches ?? []) as any[]) addModel(row);
+  for (const row of (activeNameMatches ?? []) as any[]) addModel(row);
+
+  // 4. Discontinued model name match — only for specific model queries, not pure make searches
+  if (!fullMakeMatch) {
+    const { data: disconNameMatches } = await supabase
+      .from('vehicle_models')
+      .select(MODEL_SELECT)
+      .ilike('normalized_name', `%${normalized}%`)
+      .eq('is_active', false)
+      .order('name')
+      .limit(5);
+    for (const row of (disconNameMatches ?? []) as any[]) addModel(row);
+  }
 
   return results.slice(0, 25);
 }
@@ -159,7 +184,7 @@ export async function getFollowedModels(): Promise<VehicleSearchResult[]> {
     .select(`
       vehicle_model_id,
       vehicle_models!inner(
-        id, name, slug,
+        id, name, slug, is_active,
         vehicle_makes!inner(name)
       )
     `);
@@ -170,5 +195,6 @@ export async function getFollowedModels(): Promise<VehicleSearchResult[]> {
     slug: row.vehicle_models.slug,
     make_name: row.vehicle_models.vehicle_makes.name,
     display_name: `${row.vehicle_models.vehicle_makes.name} ${row.vehicle_models.name}`,
+    is_discontinued: row.vehicle_models.is_active === false,
   }));
 }

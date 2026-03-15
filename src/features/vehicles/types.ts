@@ -11,6 +11,7 @@ export interface VehicleModel {
   name: string;
   slug: string;
   normalized_name: string;
+  is_active: boolean;
   created_at: string;
   make?: Pick<VehicleMake, 'id' | 'name' | 'slug'>;
 }
@@ -28,4 +29,5 @@ export interface VehicleSearchResult {
   slug: string;
   make_name: string;
   display_name: string; // e.g. "Honda CR-V"
+  is_discontinued?: boolean;
 }

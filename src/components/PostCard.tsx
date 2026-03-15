@@ -1,8 +1,9 @@
 import { View, Text, StyleSheet, TouchableOpacity, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import type { Post, PostCategory } from '../features/posts/types';
+import type { Post } from '../features/posts/types';
 import { CATEGORY_LABELS } from '../features/posts/types';
+import { relativeTime, CATEGORY_STYLE } from '../utils/postUtils';
 
 const C = {
   bg: '#FFFFFF',
@@ -13,28 +14,6 @@ const C = {
   textMuted: '#777777',
   textFaint: '#AAAAAA',
 };
-
-const CATEGORY_STYLE: Record<PostCategory, { bg: string; text: string }> = {
-  general:       { bg: '#F3F4F6', text: '#6B7280' },
-  price_paid:    { bg: '#ECFDF5', text: '#059669' },
-  lease_finance: { bg: '#EFF6FF', text: '#2563EB' },
-  issue:         { bg: '#FEF2F2', text: '#DC2626' },
-  maintenance:   { bg: '#FFFBEB', text: '#D97706' },
-  review:        { bg: '#F5F3FF', text: '#7C3AED' },
-  question:      { bg: '#F3F4F6', text: '#6B7280' },
-};
-
-function relativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'now';
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d`;
-  return `${Math.floor(days / 7)}w`;
-}
 
 interface Props {
   post: Post;
