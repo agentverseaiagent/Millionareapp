@@ -13,8 +13,16 @@ export default function RootLayout() {
   // Handle email confirmation deep links
   useEffect(() => {
     const handleUrl = async (url: string) => {
-      if (url.includes('access_token') || url.includes('code=')) {
+      if (url.includes('code=')) {
         await supabase.auth.exchangeCodeForSession(url);
+      } else if (url.includes('access_token')) {
+        const hash = url.split('#')[1] ?? '';
+        const params = new URLSearchParams(hash);
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+        if (access_token && refresh_token) {
+          await supabase.auth.setSession({ access_token, refresh_token });
+        }
       }
     };
 
