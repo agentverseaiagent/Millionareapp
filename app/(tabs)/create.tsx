@@ -300,7 +300,7 @@ export default function CreateScreen() {
               </TouchableOpacity>
               <View style={styles.pickerActions}>
                 <TouchableOpacity style={styles.addVehicleConfirmBtn} onPress={handleAddVehicle}>
-                  <Text style={styles.addVehicleConfirmText}>Add {picker.make_name} to post</Text>
+                  <Text style={styles.addVehicleConfirmText}>Tag this post with {picker.make_name}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.cancelPickerBtn} onPress={closePicker}>
                   <Text style={styles.cancelPickerText}>Cancel</Text>
