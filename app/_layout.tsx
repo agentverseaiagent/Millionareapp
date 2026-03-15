@@ -63,7 +63,7 @@ export default function RootLayout() {
   // Show blank loading screen while auth state resolves — prevents flicker
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0F0F0F' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
         <ActivityIndicator size="large" color="#E05A00" />
       </View>
     );

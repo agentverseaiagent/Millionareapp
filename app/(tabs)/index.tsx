@@ -13,12 +13,12 @@ import { useGlobalFeed, useFollowingFeed } from '../../src/features/posts/hooks'
 import { PostCard } from '../../src/components/PostCard';
 
 const C = {
-  bg: '#0F0F0F',
-  surface: '#1A1A1A',
-  border: '#262626',
+  bg: '#FFFFFF',
+  surface: '#F8F8F8',
+  border: '#EBEBEB',
   accent: '#E05A00',
-  text: '#F0F0F0',
-  textMuted: '#888',
+  text: '#111111',
+  textMuted: '#777777',
 };
 
 type FeedMode = 'following' | 'all';

@@ -14,14 +14,14 @@ import { Link } from 'expo-router';
 import { signUp } from '../../src/features/auth/api';
 
 const C = {
-  bg: '#0A0A0A',
-  surface: '#181818',
-  border: '#2A2A2A',
+  bg: '#F5F5F5',
+  surface: '#FFFFFF',
+  border: '#E0E0E0',
   accent: '#E05A00',
-  text: '#F0F0F0',
-  textMuted: '#888',
-  error: '#F87171',
-  success: '#34D399',
+  text: '#111111',
+  textMuted: '#777777',
+  error: '#DC2626',
+  success: '#059669',
 };
 
 function parseSignUpError(message: string): string {
@@ -167,12 +167,12 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   errorBox: {
-    backgroundColor: '#2E0A0A',
+    backgroundColor: '#FEF2F2',
     borderRadius: 8,
     padding: 12,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#5A1A1A',
+    borderColor: '#FECACA',
   },
   errorText: {
     color: C.error,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   input: {
-    backgroundColor: '#111',
+    backgroundColor: '#FAFAFA',
     borderWidth: 1,
     borderColor: C.border,
     borderRadius: 8,
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   },
   successContainer: {
     flex: 1,
-    backgroundColor: C.bg,
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,

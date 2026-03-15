@@ -17,23 +17,23 @@ import { CATEGORY_LABELS } from '../../src/features/posts/types';
 import type { PostCategory } from '../../src/features/posts/types';
 
 const C = {
-  bg: '#0F0F0F',
-  surface: '#1A1A1A',
-  border: '#262626',
+  bg: '#FFFFFF',
+  surface: '#F8F8F8',
+  border: '#EBEBEB',
   accent: '#E05A00',
-  text: '#F0F0F0',
-  textMuted: '#888',
-  textFaint: '#555',
-  inputBg: '#141414',
+  text: '#111111',
+  textMuted: '#777777',
+  textFaint: '#AAAAAA',
+  inputBg: '#F5F5F5',
 };
 
 const CATEGORY_STYLE: Record<PostCategory, { bg: string; text: string }> = {
-  price_paid:    { bg: '#0A2E1A', text: '#34D399' },
-  lease_finance: { bg: '#0A1A2E', text: '#60A5FA' },
-  issue:         { bg: '#2E0A0A', text: '#F87171' },
-  maintenance:   { bg: '#2E1A0A', text: '#FBBF24' },
-  review:        { bg: '#1A0A2E', text: '#A78BFA' },
-  question:      { bg: '#1A1A1A', text: '#9CA3AF' },
+  price_paid:    { bg: '#ECFDF5', text: '#059669' },
+  lease_finance: { bg: '#EFF6FF', text: '#2563EB' },
+  issue:         { bg: '#FEF2F2', text: '#DC2626' },
+  maintenance:   { bg: '#FFFBEB', text: '#D97706' },
+  review:        { bg: '#F5F3FF', text: '#7C3AED' },
+  question:      { bg: '#F3F4F6', text: '#6B7280' },
 };
 
 function relativeTime(dateStr: string): string {
@@ -211,12 +211,12 @@ const styles = StyleSheet.create({
   },
   vehicleTag: {
     alignSelf: 'flex-start',
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#FFF4EE',
     borderRadius: 4,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#FFD4B8',
     marginBottom: 10,
   },
   vehicleTagText: {

@@ -15,13 +15,13 @@ import { getFollowedModels } from '../../src/features/vehicles/api';
 import type { VehicleSearchResult } from '../../src/features/vehicles/types';
 
 const C = {
-  bg: '#0F0F0F',
-  surface: '#1A1A1A',
-  border: '#262626',
+  bg: '#FFFFFF',
+  surface: '#F8F8F8',
+  border: '#EBEBEB',
   accent: '#E05A00',
-  text: '#F0F0F0',
-  textMuted: '#888',
-  textFaint: '#555',
+  text: '#111111',
+  textMuted: '#777777',
+  textFaint: '#AAAAAA',
 };
 
 export default function ProfileScreen() {

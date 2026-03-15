@@ -13,13 +13,13 @@ import { VehicleModelItem } from '../../src/components/VehicleModelItem';
 import type { VehicleSearchResult } from '../../src/features/vehicles/types';
 
 const C = {
-  bg: '#0F0F0F',
-  surface: '#1A1A1A',
-  border: '#262626',
+  bg: '#FFFFFF',
+  surface: '#F8F8F8',
+  border: '#EBEBEB',
   accent: '#E05A00',
-  text: '#F0F0F0',
-  textMuted: '#888',
-  inputBg: '#1A1A1A',
+  text: '#111111',
+  textMuted: '#777777',
+  inputBg: '#F5F5F5',
 };
 
 const HINT_EXAMPLES = ['honda', 'crv', 'honda crv', 'nissan', 'rogue', 'mazda', 'cx5', 'cx-5'];
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   hintPill: {
-    backgroundColor: '#1E1E1E',
+    backgroundColor: '#FFF4EE',
     color: C.accent,
     fontSize: 13,
     fontWeight: '500',
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#2E2E2E',
+    borderColor: '#FFD4B8',
     overflow: 'hidden',
   },
   empty: {

@@ -3,11 +3,11 @@ import { Ionicons } from '@expo/vector-icons';
 import type { VehicleSearchResult } from '../features/vehicles/types';
 
 const C = {
-  bg: '#0F0F0F',
-  border: '#262626',
+  bg: '#FFFFFF',
+  border: '#EBEBEB',
   accent: '#E05A00',
-  text: '#F0F0F0',
-  textMuted: '#888',
+  text: '#111111',
+  textMuted: '#777777',
 };
 
 interface Props {
@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1A1A1A',
+    borderBottomColor: C.border,
     backgroundColor: C.bg,
   },
   content: {

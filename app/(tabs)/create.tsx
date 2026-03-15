@@ -19,23 +19,23 @@ import { searchVehicles } from '../../src/features/vehicles/api';
 import type { VehicleSearchResult } from '../../src/features/vehicles/types';
 
 const C = {
-  bg: '#0F0F0F',
-  surface: '#1A1A1A',
-  border: '#262626',
+  bg: '#FFFFFF',
+  surface: '#F8F8F8',
+  border: '#EBEBEB',
   accent: '#E05A00',
-  text: '#F0F0F0',
-  textMuted: '#888',
-  textFaint: '#444',
-  inputBg: '#141414',
+  text: '#111111',
+  textMuted: '#777777',
+  textFaint: '#AAAAAA',
+  inputBg: '#F5F5F5',
 };
 
 const CATEGORY_ACCENT: Record<PostCategory, string> = {
-  price_paid:    '#34D399',
-  lease_finance: '#60A5FA',
-  issue:         '#F87171',
-  maintenance:   '#FBBF24',
-  review:        '#A78BFA',
-  question:      '#9CA3AF',
+  price_paid:    '#059669',
+  lease_finance: '#2563EB',
+  issue:         '#DC2626',
+  maintenance:   '#D97706',
+  review:        '#7C3AED',
+  question:      '#6B7280',
 };
 
 const MAX_BODY = 500;
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   postBtnDisabled: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#CCCCCC',
   },
   postBtnText: {
     color: '#fff',

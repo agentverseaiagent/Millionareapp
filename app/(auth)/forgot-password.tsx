@@ -14,13 +14,13 @@ import { useRouter } from 'expo-router';
 import { requestPasswordReset } from '../../src/features/auth/api';
 
 const C = {
-  bg: '#0A0A0A',
-  surface: '#181818',
-  border: '#2A2A2A',
+  bg: '#F5F5F5',
+  surface: '#FFFFFF',
+  border: '#E0E0E0',
   accent: '#E05A00',
-  text: '#F0F0F0',
-  textMuted: '#888',
-  error: '#F87171',
+  text: '#111111',
+  textMuted: '#777777',
+  error: '#DC2626',
 };
 
 export default function ForgotPasswordScreen() {
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   input: {
-    backgroundColor: '#111',
+    backgroundColor: '#FAFAFA',
     borderWidth: 1,
     borderColor: C.border,
     borderRadius: 8,
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonDisabled: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: '#CCCCCC',
   },
   buttonText: {
     color: '#fff',
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   },
   successContainer: {
     flex: 1,
-    backgroundColor: C.bg,
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,

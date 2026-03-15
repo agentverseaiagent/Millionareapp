@@ -36,7 +36,8 @@
       "Bash(npx:*)",
       "Bash(cp -r /c/Users/babad/Desktop/temp_expo/. /c/Users/babad/Desktop/Millionareapp/)",
       "Bash(rm -rf /c/Users/babad/Desktop/temp_expo)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(find /c/Users/babad/Desktop/Millionareapp/src -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\))"
     ]
   }
 }
