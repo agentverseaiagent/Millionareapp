@@ -119,7 +119,6 @@ export default function CreateScreen() {
           multiline
           maxLength={MAX_BODY}
           textAlignVertical="top"
-          autoFocus
         />
         <Text style={[styles.charCount, charsLeft < 50 && styles.charCountWarning]}>
           {charsLeft}
