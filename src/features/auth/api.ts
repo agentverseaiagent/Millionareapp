@@ -5,7 +5,7 @@ export async function signUp(email: string, password: string) {
     email,
     password,
     options: {
-      emailRedirectTo: 'garagetwits://auth/confirm',
+      emailRedirectTo: 'garagetwits://',
     },
   });
   if (error) throw error;
