@@ -14,9 +14,8 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { signOut, getUserProfile, updateUsername } from '../../src/features/auth/api';
 import { getFollowedModels, getFollowedMakes, unfollowMake } from '../../src/features/vehicles/api';
-import { getPostsByAuthor } from '../../src/features/posts/api';
+import { getPostsByAuthor, deletePost } from '../../src/features/posts/api';
 import { PostCard } from '../../src/components/PostCard';
-import { deletePost } from '../../src/features/posts/api';
 import type { VehicleSearchResult } from '../../src/features/vehicles/types';
 import type { Post } from '../../src/features/posts/types';
 
@@ -56,14 +55,12 @@ export default function ProfileScreen() {
   const [followedModels, setFollowedModels] = useState<VehicleSearchResult[]>([]);
   const [followsLoading, setFollowsLoading] = useState(false);
 
-  const [initialLoaded, setInitialLoaded] = useState(false);
   const initialLoadDone = useRef(false);
 
   const loadPosts = useCallback(async (uid: string) => {
     setPostsLoading(true);
     try {
-      const posts = await getPostsByAuthor(uid);
-      setMyPosts(posts);
+      setMyPosts(await getPostsByAuthor(uid));
     } catch (e) {
       console.warn('loadPosts error:', e);
     } finally {
@@ -93,10 +90,7 @@ export default function ProfileScreen() {
       if (user?.id) loadPosts(user.id);
     });
     getUserProfile().then(p => { if (p) setUsername(p.username); });
-    loadFollows().finally(() => {
-      setInitialLoaded(true);
-      initialLoadDone.current = true;
-    });
+    loadFollows().finally(() => { initialLoadDone.current = true; });
   }, []);
 
   useFocusEffect(
@@ -136,92 +130,93 @@ export default function ProfileScreen() {
     setMyPosts(prev => prev.filter(p => p.id !== postId));
   }
 
-  // ── Header (always rendered at top of FlatList) ──────────────────────────
+  // ── Static header — lives outside FlatList so TextInput never remounts ──
 
-  function renderHeader() {
-    return (
-      <>
-        {/* Identity row */}
-        <View style={styles.userSection}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={22} color={C.textMuted} />
-          </View>
-          <View style={{ flex: 1 }}>
-            {editingUsername ? (
-              <View style={styles.usernameEditRow}>
-                <TextInput
-                  style={styles.usernameInput}
-                  value={usernameInput}
-                  onChangeText={setUsernameInput}
-                  placeholder="Enter username"
-                  placeholderTextColor={C.textFaint}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoFocus
-                  maxLength={30}
-                />
-                <TouchableOpacity
-                  style={styles.usernameSaveBtn}
-                  onPress={handleSaveUsername}
-                  disabled={savingUsername}
-                >
-                  {savingUsername
-                    ? <ActivityIndicator size="small" color="#fff" />
-                    : <Text style={styles.usernameSaveBtnText}>Save</Text>
-                  }
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.usernameCancelBtn}
-                  onPress={() => setEditingUsername(false)}
-                >
-                  <Text style={styles.usernameCancelText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
+  const header = (
+    <>
+      {/* Identity row */}
+      <View style={styles.userSection}>
+        <View style={styles.avatar}>
+          <Ionicons name="person" size={22} color={C.textMuted} />
+        </View>
+        <View style={{ flex: 1 }}>
+          {editingUsername ? (
+            <View style={styles.usernameEditRow}>
+              <TextInput
+                style={styles.usernameInput}
+                value={usernameInput}
+                onChangeText={setUsernameInput}
+                placeholder="Enter username"
+                placeholderTextColor={C.textFaint}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+                maxLength={30}
+                returnKeyType="done"
+                onSubmitEditing={handleSaveUsername}
+                blurOnSubmit={false}
+              />
               <TouchableOpacity
-                style={styles.usernameRow}
-                onPress={() => { setUsernameInput(username ?? ''); setEditingUsername(true); }}
+                style={styles.usernameSaveBtn}
+                onPress={handleSaveUsername}
+                disabled={savingUsername}
               >
-                <Text style={styles.usernameDisplay}>
-                  {username ? `@${username}` : 'Set username'}
-                </Text>
-                <Ionicons name="pencil-outline" size={13} color={C.textFaint} style={{ marginLeft: 5 }} />
+                {savingUsername
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={styles.usernameSaveBtnText}>Save</Text>
+                }
               </TouchableOpacity>
-            )}
-            <Text style={styles.emailDisplay} numberOfLines={1}>{email ?? '—'}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.signOutButton}
-            onPress={handleSignOut}
-            disabled={signingOut}
-          >
-            {signingOut
-              ? <ActivityIndicator color={C.text} size="small" />
-              : <Text style={styles.signOutText}>Sign Out</Text>
-            }
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.usernameCancelBtn}
+                onPress={() => setEditingUsername(false)}
+              >
+                <Text style={styles.usernameCancelText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.usernameRow}
+              onPress={() => { setUsernameInput(username ?? ''); setEditingUsername(true); }}
+            >
+              <Text style={styles.usernameDisplay}>
+                {username ? `@${username}` : 'Set username'}
+              </Text>
+              <Ionicons name="pencil-outline" size={13} color={C.textFaint} style={{ marginLeft: 5 }} />
+            </TouchableOpacity>
+          )}
+          <Text style={styles.emailDisplay} numberOfLines={1}>{email ?? '—'}</Text>
         </View>
+        <TouchableOpacity
+          style={styles.signOutButton}
+          onPress={handleSignOut}
+          disabled={signingOut}
+        >
+          {signingOut
+            ? <ActivityIndicator color={C.text} size="small" />
+            : <Text style={styles.signOutText}>Sign Out</Text>
+          }
+        </TouchableOpacity>
+      </View>
 
-        {/* Tab bar */}
-        <View style={styles.tabBar}>
-          <TouchableOpacity
-            style={[styles.tabBtn, tab === 'posts' && styles.tabBtnActive]}
-            onPress={() => setTab('posts')}
-          >
-            <Text style={[styles.tabText, tab === 'posts' && styles.tabTextActive]}>My Posts</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabBtn, tab === 'following' && styles.tabBtnActive]}
-            onPress={() => setTab('following')}
-          >
-            <Text style={[styles.tabText, tab === 'following' && styles.tabTextActive]}>Following</Text>
-          </TouchableOpacity>
-        </View>
-      </>
-    );
-  }
+      {/* Tab bar */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === 'posts' && styles.tabBtnActive]}
+          onPress={() => setTab('posts')}
+        >
+          <Text style={[styles.tabText, tab === 'posts' && styles.tabTextActive]}>My Posts</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === 'following' && styles.tabBtnActive]}
+          onPress={() => setTab('following')}
+        >
+          <Text style={[styles.tabText, tab === 'following' && styles.tabTextActive]}>Following</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
 
-  // ── Following tab content ────────────────────────────────────────────────
+  // ── Following tab ─────────────────────────────────────────────────────────
 
   if (tab === 'following') {
     const isEmpty = followedMakes.length === 0 && followedModels.length === 0;
@@ -229,70 +224,68 @@ export default function ProfileScreen() {
 
     return (
       <View style={styles.container}>
-        <FlatList
-          data={followData}
-          keyExtractor={item => item.is_make_result ? `make_${item.id}` : item.id}
-          ListHeaderComponent={renderHeader}
-          ListEmptyComponent={
-            followsLoading ? (
-              <ActivityIndicator style={styles.loader} color={C.accent} />
-            ) : isEmpty ? (
-              <View style={styles.empty}>
-                <Ionicons name="car-outline" size={40} color={C.textFaint} />
-                <Text style={styles.emptyText}>Not following anything yet.</Text>
-                <TouchableOpacity
-                  style={styles.discoverButton}
-                  onPress={() => router.push('/(tabs)/search')}
-                >
-                  <Text style={styles.discoverButtonText}>Discover Makes & Models</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null
-          }
-          renderItem={({ item }) => {
-            if (item.is_make_result) {
-              return (
-                <View style={styles.makeRow}>
-                  <TouchableOpacity
-                    style={styles.makeRowMain}
-                    onPress={() => router.push('/(tabs)/search')}
-                  >
-                    <Ionicons name="car-outline" size={16} color={C.accent} style={{ marginRight: 10 }} />
-                    <View>
-                      <Text style={styles.makeRowName}>{item.name}</Text>
-                      <Text style={styles.makeRowSub}>Make</Text>
-                    </View>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.unfollowBtn}
-                    onPress={() => handleUnfollowMake(item.id)}
-                  >
-                    <Text style={styles.unfollowBtnText}>Unfollow</Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            }
-            return (
-              <TouchableOpacity
-                style={styles.modelRow}
-                onPress={() => router.push(`/vehicle/${item.slug}`)}
-              >
-                <View style={styles.modelRowContent}>
-                  <Text style={styles.modelRowMake}>{item.make_name}</Text>
-                  <View style={styles.modelRowNameRow}>
-                    <Text style={styles.modelRowName}>{item.name}</Text>
-                    {item.is_discontinued && (
-                      <Text style={styles.modelRowDiscontinued}>Discontinued</Text>
-                    )}
+        {header}
+        {followsLoading && isEmpty ? (
+          <ActivityIndicator style={styles.loader} color={C.accent} />
+        ) : isEmpty ? (
+          <View style={styles.empty}>
+            <Ionicons name="car-outline" size={40} color={C.textFaint} />
+            <Text style={styles.emptyText}>Not following anything yet.</Text>
+            <TouchableOpacity
+              style={styles.discoverButton}
+              onPress={() => router.push('/(tabs)/search')}
+            >
+              <Text style={styles.discoverButtonText}>Discover Makes & Models</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={followData}
+            keyExtractor={item => item.is_make_result ? `make_${item.id}` : item.id}
+            renderItem={({ item }) => {
+              if (item.is_make_result) {
+                return (
+                  <View style={styles.makeRow}>
+                    <TouchableOpacity
+                      style={styles.makeRowMain}
+                      onPress={() => router.push(`/make/${item.slug}`)}
+                    >
+                      <Ionicons name="car-outline" size={16} color={C.accent} style={{ marginRight: 10 }} />
+                      <View>
+                        <Text style={styles.makeRowName}>{item.name}</Text>
+                        <Text style={styles.makeRowSub}>Make</Text>
+                      </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.unfollowBtn}
+                      onPress={() => handleUnfollowMake(item.id)}
+                    >
+                      <Text style={styles.unfollowBtnText}>Unfollow</Text>
+                    </TouchableOpacity>
                   </View>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={C.textFaint} />
-              </TouchableOpacity>
-            );
-          }}
-          stickyHeaderIndices={[]}
-        />
-        {/* Add button */}
+                );
+              }
+              return (
+                <TouchableOpacity
+                  style={styles.modelRow}
+                  onPress={() => router.push(`/vehicle/${item.slug}`)}
+                >
+                  <View style={styles.modelRowContent}>
+                    <Text style={styles.modelRowMake}>{item.make_name}</Text>
+                    <View style={styles.modelRowNameRow}>
+                      <Text style={styles.modelRowName}>{item.name}</Text>
+                      {item.is_discontinued && (
+                        <Text style={styles.modelRowDiscontinued}>Discontinued</Text>
+                      )}
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={C.textFaint} />
+                </TouchableOpacity>
+              );
+            }}
+            contentContainerStyle={{ paddingBottom: 80 }}
+          />
+        )}
         <TouchableOpacity
           style={styles.fab}
           onPress={() => router.push('/(tabs)/search')}
@@ -303,40 +296,39 @@ export default function ProfileScreen() {
     );
   }
 
-  // ── My Posts tab content ──────────────────────────────────────────────────
+  // ── My Posts tab ──────────────────────────────────────────────────────────
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={myPosts}
-        keyExtractor={item => item.id}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={
-          postsLoading ? (
-            <ActivityIndicator style={styles.loader} color={C.accent} />
-          ) : (
-            <View style={styles.empty}>
-              <Ionicons name="create-outline" size={40} color={C.textFaint} />
-              <Text style={styles.emptyText}>No posts yet.</Text>
-              <TouchableOpacity
-                style={styles.discoverButton}
-                onPress={() => router.push('/(tabs)/create')}
-              >
-                <Text style={styles.discoverButtonText}>Write your first post</Text>
-              </TouchableOpacity>
-            </View>
-          )
-        }
-        renderItem={({ item }) => (
-          <PostCard
-            post={item}
-            showModel
-            currentUserId={userId ?? undefined}
-            onDelete={handleDeletePost}
-          />
-        )}
-        contentContainerStyle={myPosts.length === 0 ? { flexGrow: 1 } : { paddingBottom: 24 }}
-      />
+      {header}
+      {postsLoading ? (
+        <ActivityIndicator style={styles.loader} color={C.accent} />
+      ) : myPosts.length === 0 ? (
+        <View style={styles.empty}>
+          <Ionicons name="create-outline" size={40} color={C.textFaint} />
+          <Text style={styles.emptyText}>No posts yet.</Text>
+          <TouchableOpacity
+            style={styles.discoverButton}
+            onPress={() => router.push('/(tabs)/create')}
+          >
+            <Text style={styles.discoverButtonText}>Write your first post</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={myPosts}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => (
+            <PostCard
+              post={item}
+              showModel
+              currentUserId={userId ?? undefined}
+              onDelete={handleDeletePost}
+            />
+          )}
+          contentContainerStyle={{ paddingBottom: 24 }}
+        />
+      )}
     </View>
   );
 }
@@ -438,7 +430,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 80,
     paddingHorizontal: 32,
     gap: 14,
   },
