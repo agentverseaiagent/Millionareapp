@@ -122,7 +122,7 @@ export default function VehicleScreen() {
       <FlatList
         data={posts}
         keyExtractor={item => item.id}
-        renderItem={({ item }) => <PostCard post={item} showModel={false} />}
+        renderItem={({ item }) => <PostCard post={item} showModel />}
         refreshControl={
           <RefreshControl
             refreshing={postsLoading}
