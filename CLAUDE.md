@@ -4,11 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Git & GitHub
 
-This project uses GitHub for version control. **This is a strict requirement:**
-- Commit after every meaningful unit of work (new feature, bug fix, config change, etc.)
-- Always push to `origin/master` immediately after committing — never leave work only local
+This project uses GitHub for version control. This is a strict requirement:
+- Commit after every complete, stable, meaningful unit of work (new feature, bug fix, config change, etc.)
+- Push immediately after each such commit to the current working branch so work is not left only local
 - Write clean, descriptive commit messages that explain what changed and why
-- Do not batch up many unrelated changes into one commit — keep commits focused
+- Do not batch unrelated changes into one commit
+- Do not commit partial, broken, or half-finished work unless explicitly instructed
 - This ensures the project can always be reverted to a known good state
 
 Repository: https://github.com/agentverseaiagent/Millionareapp
