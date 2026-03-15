@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { getPostById, getPostComments, createComment } from '../../src/features/posts/api';
-import type { Post, PostComment } from '../../src/features/posts/types';
+import type { Post, PostComment, PostVehicleAttachment } from '../../src/features/posts/types';
 import { CATEGORY_LABELS } from '../../src/features/posts/types';
 import { relativeTime, CATEGORY_STYLE } from '../../src/utils/postUtils';
 
@@ -79,37 +79,57 @@ export default function PostScreen() {
     );
   }
 
-  const vehicleLabel = (() => {
+  function buildLabel(v: PostVehicleAttachment): string {
+    const parts: string[] = [];
+    if (v.make_name) parts.push(v.make_name);
+    if (v.model_name) parts.push(v.model_name);
+    if (v.trim_name) parts.push(v.trim_name);
+    if (v.year) parts.push(String(v.year));
+    return parts.join(' · ');
+  }
+
+  const vehicles: { label: string; slug: string | null }[] = (() => {
+    if (post.vehicle_attachments?.length > 0) {
+      return post.vehicle_attachments
+        .map(v => ({ label: buildLabel(v), slug: v.model_slug ?? null }))
+        .filter(v => v.label);
+    }
     if (post.vehicle_model) {
       const make = post.vehicle_model.vehicle_makes?.name ?? post.vehicle_make?.name ?? '';
-      const model = post.vehicle_model.name;
-      const parts = [`${make} ${model}`.trim()];
+      const parts = [`${make} ${post.vehicle_model.name}`.trim()];
       if (post.vehicle_trim?.name) parts.push(post.vehicle_trim.name);
       if (post.vehicle_year) parts.push(String(post.vehicle_year));
-      return parts.join(' · ');
+      return [{ label: parts.join(' · '), slug: post.vehicle_model.slug }];
     }
-    if (post.vehicle_make) return post.vehicle_make.name;
-    return null;
+    if (post.vehicle_make) return [{ label: post.vehicle_make.name, slug: null }];
+    return [];
   })();
-  const modelSlug = post.vehicle_model?.slug ?? null;
-  const catStyle = post.category ? CATEGORY_STYLE[post.category] : null;
+
+  const cats = post.categories?.length > 0
+    ? post.categories
+    : post.category ? [post.category] : [];
 
   const PostHeader = (
     <View style={styles.postBlock}>
-      {/* Vehicle tag */}
-      {vehicleLabel && (
-        modelSlug ? (
-          <TouchableOpacity
-            style={styles.vehicleTag}
-            onPress={() => router.push(`/vehicle/${modelSlug}`)}
-          >
-            <Text style={styles.vehicleTagText}>{vehicleLabel}</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.vehicleTag}>
-            <Text style={styles.vehicleTagText}>{vehicleLabel}</Text>
-          </View>
-        )
+      {/* Vehicle tags */}
+      {vehicles.length > 0 && (
+        <View style={styles.vehicleTagRow}>
+          {vehicles.map((v, i) =>
+            v.slug ? (
+              <TouchableOpacity
+                key={i}
+                style={styles.vehicleTag}
+                onPress={() => router.push(`/vehicle/${v.slug}`)}
+              >
+                <Text style={styles.vehicleTagText}>{v.label}</Text>
+              </TouchableOpacity>
+            ) : (
+              <View key={i} style={styles.vehicleTag}>
+                <Text style={styles.vehicleTagText}>{v.label}</Text>
+              </View>
+            )
+          )}
+        </View>
       )}
 
       {/* Body */}
@@ -117,13 +137,19 @@ export default function PostScreen() {
 
       {/* Footer row */}
       <View style={styles.postFooter}>
-        {post.category && catStyle && (
-          <View style={[styles.categoryBadge, { backgroundColor: catStyle.bg }]}>
-            <Text style={[styles.categoryText, { color: catStyle.text }]}>
-              {CATEGORY_LABELS[post.category]}
-            </Text>
-          </View>
-        )}
+        <View style={styles.categoryBadges}>
+          {cats.map(cat => {
+            const catStyle = CATEGORY_STYLE[cat];
+            if (!catStyle) return null;
+            return (
+              <View key={cat} style={[styles.categoryBadge, { backgroundColor: catStyle.bg }]}>
+                <Text style={[styles.categoryText, { color: catStyle.text }]}>
+                  {CATEGORY_LABELS[cat]}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
         <Text style={styles.postTime}>{relativeTime(post.created_at)}</Text>
       </View>
 
@@ -215,6 +241,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
+  vehicleTagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 10,
+  },
   vehicleTag: {
     alignSelf: 'flex-start',
     backgroundColor: '#FFF4EE',
@@ -223,7 +255,6 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderWidth: 1,
     borderColor: '#FFD4B8',
-    marginBottom: 10,
   },
   vehicleTagText: {
     fontSize: 12,
@@ -240,6 +271,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  categoryBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    flex: 1,
   },
   categoryBadge: {
     borderRadius: 4,

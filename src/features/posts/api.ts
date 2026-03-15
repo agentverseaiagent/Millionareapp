@@ -3,7 +3,7 @@ import type { Post, CreatePostInput, PostComment } from './types';
 
 const POST_SELECT = `
   id, author_id, vehicle_make_id, vehicle_model_id, vehicle_trim_id, vehicle_year,
-  body, category, created_at,
+  body, category, categories, vehicle_attachments, created_at,
   author:profiles!author_id(id, username),
   vehicle_model:vehicle_models(
     id, name, slug,
@@ -146,16 +146,26 @@ export async function getPostsByAuthor(authorId: string, limit = 50, offset = 0)
 export async function createPost(input: CreatePostInput): Promise<Post> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
+
+  const attachments = input.vehicle_attachments ?? [];
+  const first = attachments[0];
+  const cats = input.categories ?? (input.category ? [input.category] : ['general']);
+
   const { data, error } = await supabase
     .from('posts')
     .insert({
       author_id: user.id,
       body: input.body.trim(),
-      vehicle_make_id: input.vehicle_make_id ?? null,
-      vehicle_model_id: input.vehicle_model_id ?? null,
-      vehicle_trim_id: input.vehicle_trim_id ?? null,
-      vehicle_year: input.vehicle_year ?? null,
-      category: input.category ?? 'general',
+      // Legacy FK columns from first vehicle (keeps feed queries working)
+      vehicle_make_id: first?.make_id ?? input.vehicle_make_id ?? null,
+      vehicle_model_id: first?.model_id ?? input.vehicle_model_id ?? null,
+      vehicle_trim_id: first?.trim_id ?? input.vehicle_trim_id ?? null,
+      vehicle_year: first?.year ?? input.vehicle_year ?? null,
+      // Old single category for backward compat
+      category: cats[0] ?? 'general',
+      // New array columns
+      categories: cats,
+      vehicle_attachments: attachments,
     })
     .select(POST_SELECT)
     .single();

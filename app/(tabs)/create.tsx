@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { createPost } from '../../src/features/posts/api';
 import { POST_CATEGORIES } from '../../src/features/posts/types';
-import type { PostCategory } from '../../src/features/posts/types';
+import type { PostCategory, PostVehicleAttachment } from '../../src/features/posts/types';
 import { CATEGORY_ACCENT } from '../../src/utils/postUtils';
 import { searchVehicles, getTrimsForModel } from '../../src/features/vehicles/api';
 import type { VehicleSearchResult, VehicleTrim } from '../../src/features/vehicles/types';
@@ -31,8 +31,10 @@ const C = {
 };
 
 const MAX_BODY = 500;
+const MAX_VEHICLES = 3;
 
-interface VehicleAttachment {
+// Picker state for the in-progress vehicle being selected
+interface PickerState {
   make_id: string;
   make_name: string;
   model_id?: string;
@@ -40,6 +42,7 @@ interface VehicleAttachment {
   model_slug?: string;
   trim_id?: string;
   trim_name?: string;
+  year?: string; // string while editing, converted on add
 }
 
 export default function CreateScreen() {
@@ -53,24 +56,21 @@ export default function CreateScreen() {
   }>();
 
   const [body, setBody] = useState('');
-  const [category, setCategory] = useState<PostCategory | null>(null);
-  const [attachment, setAttachment] = useState<VehicleAttachment | null>(null);
-  const [year, setYear] = useState('');
+  const [categories, setCategories] = useState<PostCategory[]>([]);
+  const [vehicles, setVehicles] = useState<PostVehicleAttachment[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Vehicle search (initial, when nothing selected)
+  // Vehicle picker state
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [picker, setPicker] = useState<PickerState | null>(null);
+  const [addingModel, setAddingModel] = useState(false);
   const [vehicleQuery, setVehicleQuery] = useState('');
   const [vehicleResults, setVehicleResults] = useState<VehicleSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
-
-  // Model search (when make is selected and user wants to add a model)
-  const [addingModel, setAddingModel] = useState(false);
   const [modelQuery, setModelQuery] = useState('');
   const [modelResults, setModelResults] = useState<VehicleSearchResult[]>([]);
   const [searchingModel, setSearchingModel] = useState(false);
-
-  // Trim
   const [trims, setTrims] = useState<VehicleTrim[]>([]);
   const [trimsLoading, setTrimsLoading] = useState(false);
 
@@ -79,83 +79,86 @@ export default function CreateScreen() {
   // Pre-select from route params
   useEffect(() => {
     if (params.preModelId && params.preModelName && params.preMakeName) {
-      setAttachment({
+      setVehicles([{
         make_id: params.preMakeId ?? '',
         make_name: params.preMakeName,
         model_id: params.preModelId,
         model_name: params.preModelName,
         model_slug: params.preModelSlug ?? '',
-      });
+      }]);
     }
   }, [params.preModelId]);
 
-  // Fetch trims when model is selected
+  // Fetch trims when model is selected in picker
   useEffect(() => {
-    if (!attachment?.model_id) {
-      setTrims([]);
-      return;
-    }
+    if (!picker?.model_id) { setTrims([]); return; }
     setTrimsLoading(true);
-    getTrimsForModel(attachment.model_id)
-      .then(setTrims)
-      .finally(() => setTrimsLoading(false));
-  }, [attachment?.model_id]);
+    getTrimsForModel(picker.model_id).then(setTrims).finally(() => setTrimsLoading(false));
+  }, [picker?.model_id]);
 
   const handleCancel = useCallback(() => {
-    if (params.preModelSlug) {
-      router.replace(`/vehicle/${params.preModelSlug}`);
-    } else {
-      router.replace('/(tabs)');
-    }
+    if (params.preModelSlug) router.replace(`/vehicle/${params.preModelSlug}`);
+    else router.replace('/(tabs)');
   }, [router, params.preModelSlug]);
 
-  // Initial vehicle search (no make selected yet)
-  const handleVehicleSearch = useCallback(async (text: string) => {
-    setVehicleQuery(text);
-    if (!text.trim()) {
-      setVehicleResults([]);
-      return;
-    }
-    setSearching(true);
-    try {
-      setVehicleResults(await searchVehicles(text));
-    } catch {
-      setVehicleResults([]);
-    } finally {
-      setSearching(false);
-    }
+  // ── Category toggle ──────────────────────────────────────────────────────
+  const toggleCategory = useCallback((cat: PostCategory) => {
+    setCategories(prev =>
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
   }, []);
 
-  // Model search (scoped to selected make)
+  // ── Vehicle search ───────────────────────────────────────────────────────
+  const handleVehicleSearch = useCallback(async (text: string) => {
+    setVehicleQuery(text);
+    if (!text.trim()) { setVehicleResults([]); return; }
+    setSearching(true);
+    try { setVehicleResults(await searchVehicles(text)); }
+    catch { setVehicleResults([]); }
+    finally { setSearching(false); }
+  }, []);
+
   const handleModelSearch = useCallback(async (text: string) => {
     setModelQuery(text);
-    if (!text.trim()) {
-      setModelResults([]);
-      return;
-    }
+    if (!text.trim()) { setModelResults([]); return; }
     setSearchingModel(true);
     try {
       const all = await searchVehicles(text);
-      // Keep only models from the selected make
-      setModelResults(all.filter(r => !r.is_make_result && r.make_id === attachment?.make_id));
-    } catch {
-      setModelResults([]);
-    } finally {
-      setSearchingModel(false);
+      setModelResults(all.filter(r => !r.is_make_result && r.make_id === picker?.make_id));
     }
-  }, [attachment?.make_id]);
+    catch { setModelResults([]); }
+    finally { setSearchingModel(false); }
+  }, [picker?.make_id]);
+
+  const openPicker = useCallback(() => {
+    setPicker(null);
+    setAddingModel(false);
+    setVehicleQuery('');
+    setVehicleResults([]);
+    setModelQuery('');
+    setModelResults([]);
+    setTrims([]);
+    setPickerOpen(true);
+  }, []);
+
+  const closePicker = useCallback(() => {
+    setPickerOpen(false);
+    setPicker(null);
+    setAddingModel(false);
+    setVehicleQuery('');
+    setVehicleResults([]);
+  }, []);
 
   const handleSelectResult = useCallback((item: VehicleSearchResult) => {
     if (item.is_make_result) {
-      setAttachment({ make_id: item.make_id, make_name: item.name });
+      setPicker({ make_id: item.make_id, make_name: item.name });
     } else {
-      setAttachment(prev => ({
+      setPicker(prev => ({
         make_id: item.make_id,
         make_name: item.make_name,
         model_id: item.id,
         model_name: item.name,
         model_slug: item.slug,
-        // carry over trim if previously chosen for same make
         trim_id: prev?.make_id === item.make_id ? prev?.trim_id : undefined,
         trim_name: prev?.make_id === item.make_id ? prev?.trim_name : undefined,
       }));
@@ -163,7 +166,6 @@ export default function CreateScreen() {
       setModelQuery('');
       setModelResults([]);
     }
-    setYear('');
     setVehicleQuery('');
     setVehicleResults([]);
   }, []);
@@ -172,33 +174,12 @@ export default function CreateScreen() {
     setAddingModel(true);
     setModelQuery('');
     setModelResults([]);
-    // seed with make name so user sees models immediately
-    if (attachment?.make_name) {
-      handleModelSearch(attachment.make_name);
-    }
+    if (picker?.make_name) handleModelSearch(picker.make_name);
     setTimeout(() => modelInputRef.current?.focus(), 100);
-  }, [attachment?.make_name, handleModelSearch]);
-
-  const clearAttachment = useCallback(() => {
-    setAttachment(null);
-    setYear('');
-    setTrims([]);
-    setAddingModel(false);
-    setVehicleQuery('');
-    setVehicleResults([]);
-    setModelQuery('');
-    setModelResults([]);
-  }, []);
-
-  const clearModel = useCallback(() => {
-    setAttachment(prev => prev ? { make_id: prev.make_id, make_name: prev.make_name } : null);
-    setYear('');
-    setTrims([]);
-    setAddingModel(false);
-  }, []);
+  }, [picker?.make_name, handleModelSearch]);
 
   const handleSelectTrim = useCallback((trim: VehicleTrim) => {
-    setAttachment(prev => {
+    setPicker(prev => {
       if (!prev) return prev;
       if (prev.trim_id === trim.id) {
         const { trim_id, trim_name, ...rest } = prev;
@@ -208,26 +189,33 @@ export default function CreateScreen() {
     });
   }, []);
 
+  const handleAddVehicle = useCallback(() => {
+    if (!picker) return;
+    const yearNum = picker.year ? parseInt(picker.year, 10) : undefined;
+    const v: PostVehicleAttachment = {
+      make_id: picker.make_id,
+      make_name: picker.make_name,
+      model_id: picker.model_id,
+      model_name: picker.model_name,
+      model_slug: picker.model_slug,
+      trim_id: picker.trim_id,
+      trim_name: picker.trim_name,
+      year: yearNum && !isNaN(yearNum) ? yearNum : undefined,
+    };
+    setVehicles(prev => [...prev, v]);
+    closePicker();
+  }, [picker, closePicker]);
+
+  // ── Submit ───────────────────────────────────────────────────────────────
   const handleSubmit = useCallback(async () => {
-    if (!body.trim()) {
-      setError('Write something before posting.');
-      return;
-    }
-    const yearNum = year ? parseInt(year, 10) : undefined;
-    if (year && (isNaN(yearNum!) || yearNum! < 1900 || yearNum! > 2030)) {
-      setError('Enter a valid year (1900–2030).');
-      return;
-    }
+    if (!body.trim()) { setError('Write something before posting.'); return; }
     setError(null);
     setSubmitting(true);
     try {
       await createPost({
         body: body.trim(),
-        vehicle_make_id: attachment?.make_id,
-        vehicle_model_id: attachment?.model_id,
-        vehicle_trim_id: attachment?.trim_id,
-        vehicle_year: yearNum,
-        category: category ?? 'general',
+        categories: categories.length > 0 ? categories : ['general'],
+        vehicle_attachments: vehicles,
       });
       router.replace('/(tabs)');
     } catch (err: any) {
@@ -235,30 +223,30 @@ export default function CreateScreen() {
     } finally {
       setSubmitting(false);
     }
-  }, [body, attachment, year, category, router]);
+  }, [body, categories, vehicles, router]);
 
   const charsLeft = MAX_BODY - body.length;
   const canPost = body.trim().length > 0 && !submitting;
 
-  // ── Render helpers ──────────────────────────────────────────────────────────
+  // ── Vehicle picker render ────────────────────────────────────────────────
+  function renderPicker() {
+    if (!pickerOpen) return null;
 
-  function renderVehicleSection() {
-    // ── No attachment: initial search ──────────────────────────────
-    if (!attachment) {
+    // No make selected yet — show search
+    if (!picker) {
       return (
-        <>
+        <View style={styles.pickerBox}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search make or model (optional)…"
+            placeholder="Search make or model…"
             placeholderTextColor={C.textFaint}
             value={vehicleQuery}
             onChangeText={handleVehicleSearch}
             autoCapitalize="none"
             autoCorrect={false}
+            autoFocus
           />
-          {searching && (
-            <ActivityIndicator size="small" color={C.accent} style={styles.smallLoader} />
-          )}
+          {searching && <ActivityIndicator size="small" color={C.accent} style={styles.smallLoader} />}
           {vehicleResults.slice(0, 8).map(item => (
             <TouchableOpacity
               key={item.is_make_result ? `make_${item.id}` : item.id}
@@ -270,7 +258,7 @@ export default function CreateScreen() {
                   <Ionicons name="car-outline" size={15} color={C.accent} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.makeResultName}>{item.name}</Text>
-                    <Text style={styles.makeResultSub}>Post about all {item.name} vehicles</Text>
+                    <Text style={styles.makeResultSub}>All {item.name} vehicles</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={14} color={C.textFaint} />
                 </View>
@@ -279,118 +267,92 @@ export default function CreateScreen() {
                   <Text style={styles.resultMake}>{item.make_name}</Text>
                   <View style={styles.resultNameRow}>
                     <Text style={styles.resultName}>{item.name}</Text>
-                    {item.is_discontinued && (
-                      <Text style={styles.resultDiscontinued}>Discontinued</Text>
-                    )}
+                    {item.is_discontinued && <Text style={styles.resultDiscontinued}>Discontinued</Text>}
                   </View>
                 </>
               )}
             </TouchableOpacity>
           ))}
-        </>
+          <TouchableOpacity style={styles.cancelPickerBtn} onPress={closePicker}>
+            <Text style={styles.cancelPickerText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
       );
     }
 
-    // ── Make selected, no model yet ────────────────────────────────
-    if (!attachment.model_id) {
+    // Make selected, no model yet
+    if (!picker.model_id) {
       return (
-        <>
-          {/* Make badge */}
-          <View style={styles.selectedCard}>
-            <Ionicons name="car-outline" size={18} color={C.accent} style={{ marginRight: 10 }} />
+        <View style={styles.pickerBox}>
+          <View style={styles.pickerSelectedCard}>
+            <Ionicons name="car-outline" size={16} color={C.accent} style={{ marginRight: 8 }} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.selectedMakeLabel}>Make</Text>
-              <Text style={styles.selectedMakeName}>{attachment.make_name}</Text>
+              <Text style={styles.pickerMakeLabel}>Make</Text>
+              <Text style={styles.pickerMakeName}>{picker.make_name}</Text>
             </View>
-            <TouchableOpacity
-              onPress={clearAttachment}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="close-circle" size={22} color={C.textMuted} />
-            </TouchableOpacity>
           </View>
 
-          {/* Add model prompt */}
           {!addingModel ? (
-            <View style={styles.addModelRow}>
+            <>
               <TouchableOpacity style={styles.addModelBtn} onPress={handleOpenModelSearch}>
-                <Ionicons name="add-circle-outline" size={16} color={C.accent} />
+                <Ionicons name="add-circle-outline" size={15} color={C.accent} />
                 <Text style={styles.addModelBtnText}>Add a specific model</Text>
               </TouchableOpacity>
-              <Text style={styles.addModelHint}>  or post about {attachment.make_name} only</Text>
-            </View>
+              <View style={styles.pickerActions}>
+                <TouchableOpacity style={styles.addVehicleConfirmBtn} onPress={handleAddVehicle}>
+                  <Text style={styles.addVehicleConfirmText}>Add {picker.make_name} to post</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.cancelPickerBtn} onPress={closePicker}>
+                  <Text style={styles.cancelPickerText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </>
           ) : (
             <>
-              <Text style={styles.subLabel}>Search {attachment.make_name} models</Text>
+              <Text style={styles.subLabel}>Search {picker.make_name} models</Text>
               <TextInput
                 ref={modelInputRef}
                 style={styles.searchInput}
-                placeholder={`e.g. CR-V, Civic, Pilot…`}
+                placeholder="e.g. CR-V, Civic…"
                 placeholderTextColor={C.textFaint}
                 value={modelQuery}
                 onChangeText={handleModelSearch}
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              {searchingModel && (
-                <ActivityIndicator size="small" color={C.accent} style={styles.smallLoader} />
-              )}
+              {searchingModel && <ActivityIndicator size="small" color={C.accent} style={styles.smallLoader} />}
               {modelResults.slice(0, 6).map(item => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.resultRow}
-                  onPress={() => handleSelectResult(item)}
-                >
+                <TouchableOpacity key={item.id} style={styles.resultRow} onPress={() => handleSelectResult(item)}>
                   <Text style={styles.resultMake}>{item.make_name}</Text>
                   <View style={styles.resultNameRow}>
                     <Text style={styles.resultName}>{item.name}</Text>
-                    {item.is_discontinued && (
-                      <Text style={styles.resultDiscontinued}>Discontinued</Text>
-                    )}
+                    {item.is_discontinued && <Text style={styles.resultDiscontinued}>Discontinued</Text>}
                   </View>
                 </TouchableOpacity>
               ))}
-              <TouchableOpacity
-                style={styles.cancelModelSearch}
-                onPress={() => { setAddingModel(false); setModelQuery(''); setModelResults([]); }}
-              >
-                <Text style={styles.cancelModelSearchText}>Cancel — keep {attachment.make_name} only</Text>
+              <TouchableOpacity onPress={() => { setAddingModel(false); setModelQuery(''); setModelResults([]); }}>
+                <Text style={styles.cancelPickerText}>← Back</Text>
               </TouchableOpacity>
             </>
           )}
-        </>
+        </View>
       );
     }
 
-    // ── Make + model selected ──────────────────────────────────────
+    // Make + model selected — show trim/year + confirm
     return (
-      <>
-        {/* Make + model card */}
-        <View style={styles.selectedCard}>
-          <Ionicons name="car-sport-outline" size={18} color={C.accent} style={{ marginRight: 10 }} />
+      <View style={styles.pickerBox}>
+        <View style={styles.pickerSelectedCard}>
+          <Ionicons name="car-sport-outline" size={16} color={C.accent} style={{ marginRight: 8 }} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.selectedMakeLabel}>{attachment.make_name}</Text>
-            <Text style={styles.selectedModelName}>{attachment.model_name}</Text>
+            <Text style={styles.pickerMakeLabel}>{picker.make_name}</Text>
+            <Text style={styles.pickerMakeName}>{picker.model_name}</Text>
           </View>
-          <View style={styles.selectedCardActions}>
-            <TouchableOpacity
-              onPress={clearModel}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={styles.changeModelBtn}
-            >
-              <Text style={styles.changeModelText}>Change</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={clearAttachment}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={{ marginLeft: 12 }}
-            >
-              <Ionicons name="close-circle" size={22} color={C.textMuted} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity onPress={() => setPicker(prev => prev ? { make_id: prev.make_id, make_name: prev.make_name } : null)}>
+            <Text style={styles.changeText}>Change</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Trim */}
         {trimsLoading ? (
           <ActivityIndicator size="small" color={C.accent} style={styles.smallLoader} />
         ) : trims.length > 0 ? (
@@ -398,16 +360,10 @@ export default function CreateScreen() {
             <Text style={styles.subLabel}>Trim  <Text style={styles.optionalTag}>optional</Text></Text>
             <View style={styles.chipRow}>
               {trims.map(trim => {
-                const active = attachment.trim_id === trim.id;
+                const active = picker.trim_id === trim.id;
                 return (
-                  <TouchableOpacity
-                    key={trim.id}
-                    style={[styles.chip, active && styles.chipActive]}
-                    onPress={() => handleSelectTrim(trim)}
-                  >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                      {trim.name}
-                    </Text>
+                  <TouchableOpacity key={trim.id} style={[styles.chip, active && styles.chipActive]} onPress={() => handleSelectTrim(trim)}>
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{trim.name}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -415,27 +371,32 @@ export default function CreateScreen() {
           </>
         ) : null}
 
-        {/* Year */}
         <Text style={styles.subLabel}>Year  <Text style={styles.optionalTag}>optional</Text></Text>
         <TextInput
           style={styles.yearInput}
           placeholder="e.g. 2024"
           placeholderTextColor={C.textFaint}
-          value={year}
-          onChangeText={setYear}
+          value={picker.year ?? ''}
+          onChangeText={t => setPicker(prev => prev ? { ...prev, year: t } : prev)}
           keyboardType="number-pad"
           maxLength={4}
         />
-      </>
+
+        <View style={styles.pickerActions}>
+          <TouchableOpacity style={styles.addVehicleConfirmBtn} onPress={handleAddVehicle}>
+            <Text style={styles.addVehicleConfirmText}>Add to post</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cancelPickerBtn} onPress={closePicker}>
+            <Text style={styles.cancelPickerText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      {/* ── Top action bar ────────────────────────────────────────── */}
+    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      {/* Action bar */}
       <View style={styles.actionBar}>
         <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
           <Text style={styles.cancelText}>Cancel</Text>
@@ -453,7 +414,6 @@ export default function CreateScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ── Scrollable form ───────────────────────────────────────── */}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -461,7 +421,7 @@ export default function CreateScreen() {
         keyboardDismissMode="interactive"
         automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
       >
-        {/* ── Body ──────────────────────────────────────────────── */}
+        {/* Body */}
         <TextInput
           style={styles.bodyInput}
           placeholder="Share your experience, question, or insight…"
@@ -479,18 +439,20 @@ export default function CreateScreen() {
           </Text>
         </View>
 
-        {/* ── Category ──────────────────────────────────────────── */}
+        {/* Category — multi-select */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Category  <Text style={styles.optionalTag}>optional</Text></Text>
-          <View style={styles.categoryGrid}>
+          <Text style={styles.sectionLabel}>
+            Category  <Text style={styles.optionalTag}>optional · select any that apply</Text>
+          </Text>
+          <View style={styles.chipRow}>
             {POST_CATEGORIES.map(cat => {
-              const active = category === cat.value;
+              const active = categories.includes(cat.value);
               const color = CATEGORY_ACCENT[cat.value];
               return (
                 <TouchableOpacity
                   key={cat.value}
                   style={[styles.chip, active && { borderColor: color, backgroundColor: `${color}18` }]}
-                  onPress={() => setCategory(category === cat.value ? null : cat.value)}
+                  onPress={() => toggleCategory(cat.value)}
                 >
                   <Text style={[styles.chipText, active && { color, fontWeight: '700' }]}>
                     {cat.label}
@@ -501,10 +463,46 @@ export default function CreateScreen() {
           </View>
         </View>
 
-        {/* ── Vehicle ───────────────────────────────────────────── */}
+        {/* Vehicles — multi-select */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Vehicle  <Text style={styles.optionalTag}>optional</Text></Text>
-          {renderVehicleSection()}
+          <Text style={styles.sectionLabel}>
+            Vehicles  <Text style={styles.optionalTag}>optional · up to {MAX_VEHICLES}</Text>
+          </Text>
+
+          {/* Added vehicles list */}
+          {vehicles.map((v, i) => {
+            const parts: string[] = [];
+            if (v.make_name) parts.push(v.make_name);
+            if (v.model_name) parts.push(v.model_name);
+            if (v.trim_name) parts.push(v.trim_name);
+            if (v.year) parts.push(String(v.year));
+            const label = parts.join(' · ');
+            return (
+              <View key={i} style={styles.addedVehicleRow}>
+                <Ionicons name="car-sport-outline" size={15} color={C.accent} style={{ marginRight: 8 }} />
+                <Text style={styles.addedVehicleLabel} numberOfLines={1}>{label}</Text>
+                <TouchableOpacity
+                  onPress={() => setVehicles(prev => prev.filter((_, idx) => idx !== i))}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close-circle" size={18} color={C.textMuted} />
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+
+          {/* Picker */}
+          {renderPicker()}
+
+          {/* Add vehicle button — shown when picker is closed and under limit */}
+          {!pickerOpen && vehicles.length < MAX_VEHICLES && (
+            <TouchableOpacity style={styles.addVehicleBtn} onPress={openPicker}>
+              <Ionicons name="add-circle-outline" size={16} color={C.accent} />
+              <Text style={styles.addVehicleBtnText}>
+                {vehicles.length === 0 ? 'Add a vehicle' : 'Add another vehicle'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {error && (
@@ -514,7 +512,6 @@ export default function CreateScreen() {
           </View>
         )}
 
-        {/* ── Submit button (bottom of form) ────────────────────── */}
         <TouchableOpacity
           style={[styles.submitBtn, !canPost && styles.submitBtnDisabled]}
           onPress={handleSubmit}
@@ -531,12 +528,8 @@ export default function CreateScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
+  root: { flex: 1, backgroundColor: C.bg },
 
-  // ── Action bar ────────────────────────────────────────────────
   actionBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -544,291 +537,125 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
-    backgroundColor: C.bg,
   },
-  cancelBtn: {
-    paddingVertical: 6,
-    paddingRight: 12,
-    minWidth: 60,
-  },
-  cancelText: {
-    fontSize: 16,
-    color: C.textMuted,
-  },
-  actionBarTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 15,
-    fontWeight: '700',
-    color: C.text,
-  },
+  cancelBtn: { paddingVertical: 6, paddingRight: 12, minWidth: 60 },
+  cancelText: { fontSize: 16, color: C.textMuted },
+  actionBarTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '700', color: C.text },
   postBtn: {
-    backgroundColor: C.accent,
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    minWidth: 60,
-    alignItems: 'center',
+    backgroundColor: C.accent, borderRadius: 20,
+    paddingHorizontal: 18, paddingVertical: 8, minWidth: 60, alignItems: 'center',
   },
   postBtnDisabled: { backgroundColor: '#CCCCCC' },
   postBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
-  // ── Scroll / form ─────────────────────────────────────────────
   scroll: { flex: 1 },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 60,
-    gap: 0,
-  },
+  scrollContent: { padding: 16, paddingBottom: 60 },
 
-  // ── Body ──────────────────────────────────────────────────────
   bodyInput: {
-    fontSize: 17,
-    color: C.text,
-    minHeight: 130,
-    lineHeight: 26,
-    paddingTop: 4,
+    fontSize: 17, color: C.text, minHeight: 130, lineHeight: 26, paddingTop: 4,
   },
-  charRow: {
-    alignItems: 'flex-end',
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  charCount: {
-    fontSize: 12,
-    color: C.textFaint,
-  },
+  charRow: { alignItems: 'flex-end', marginTop: 4, marginBottom: 4 },
+  charCount: { fontSize: 12, color: C.textFaint },
   charCountWarn: { color: '#F87171' },
 
-  // ── Section ───────────────────────────────────────────────────
   section: {
     marginTop: 20,
     paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: C.border,
   },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: C.text,
-    marginBottom: 12,
-  },
-  optionalTag: {
-    fontSize: 11,
-    fontWeight: '400',
-    color: C.textFaint,
-  },
+  sectionLabel: { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 12 },
+  optionalTag: { fontSize: 11, fontWeight: '400', color: C.textFaint },
   subLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: C.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 14,
-    marginBottom: 8,
+    fontSize: 12, fontWeight: '600', color: C.textMuted,
+    textTransform: 'uppercase', letterSpacing: 0.5,
+    marginTop: 12, marginBottom: 8,
   },
 
-  // ── Category grid ─────────────────────────────────────────────
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-
-  // ── Chips ─────────────────────────────────────────────────────
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  chipActive: {
-    borderColor: C.accent,
-    backgroundColor: '#FFF4EE',
-  },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { borderWidth: 1, borderColor: C.border, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7 },
+  chipActive: { borderColor: C.accent, backgroundColor: '#FFF4EE' },
   chipText: { fontSize: 13, color: C.textMuted, fontWeight: '500' },
   chipTextActive: { color: C.accent, fontWeight: '700' },
 
-  // ── Search inputs ─────────────────────────────────────────────
-  searchInput: {
-    backgroundColor: C.inputBg,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: C.text,
-  },
-  smallLoader: { marginTop: 10 },
-
-  // ── Search result rows ────────────────────────────────────────
-  resultRow: {
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  resultRowMake: {
-    backgroundColor: '#FFFAF7',
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    marginTop: 2,
-  },
-  makeResultInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  makeResultName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: C.accent,
-  },
-  makeResultSub: {
-    fontSize: 11,
-    color: C.textMuted,
-    marginTop: 1,
-  },
-  resultMake: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: C.accent,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    marginBottom: 2,
-  },
-  resultNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  resultName: { fontSize: 15, color: C.text },
-  resultDiscontinued: { fontSize: 11, color: '#AAAAAA', fontStyle: 'italic' },
-
-  // ── Selected vehicle card ─────────────────────────────────────
-  selectedCard: {
+  // Added vehicle rows
+  addedVehicleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF8F4',
     borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
     borderWidth: 1,
     borderColor: '#FFD4B8',
+    marginBottom: 8,
   },
-  selectedMakeLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: C.accent,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  selectedMakeName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.text,
-  },
-  selectedModelName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: C.text,
-  },
-  selectedCardActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  changeModelBtn: {
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  changeModelText: {
-    fontSize: 12,
-    color: C.textMuted,
-    fontWeight: '600',
-  },
+  addedVehicleLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: C.text },
 
-  // ── Add model row ─────────────────────────────────────────────
-  addModelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    flexWrap: 'wrap',
-    gap: 4,
+  // Add vehicle button
+  addVehicleBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 10,
   },
-  addModelBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingVertical: 4,
-  },
-  addModelBtnText: {
-    fontSize: 14,
-    color: C.accent,
-    fontWeight: '600',
-  },
-  addModelHint: {
-    fontSize: 13,
-    color: C.textMuted,
-  },
-  cancelModelSearch: {
-    marginTop: 10,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  cancelModelSearchText: {
-    fontSize: 13,
-    color: C.textMuted,
-  },
+  addVehicleBtnText: { fontSize: 14, color: C.accent, fontWeight: '600' },
 
-  // ── Year input ────────────────────────────────────────────────
-  yearInput: {
-    backgroundColor: C.inputBg,
-    borderWidth: 1,
-    borderColor: C.border,
+  // Picker box
+  pickerBox: {
+    backgroundColor: C.surface,
     borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: C.text,
-    width: 120,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 12,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  searchInput: {
+    backgroundColor: C.bg,
+    borderWidth: 1, borderColor: C.border, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: C.text,
+  },
+  smallLoader: { marginTop: 10 },
+  resultRow: { paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: C.border },
+  resultRowMake: { backgroundColor: '#FFFAF7', paddingHorizontal: 8, borderRadius: 6, marginTop: 2 },
+  makeResultInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  makeResultName: { fontSize: 15, fontWeight: '700', color: C.accent },
+  makeResultSub: { fontSize: 11, color: C.textMuted, marginTop: 1 },
+  resultMake: { fontSize: 10, fontWeight: '700', color: C.accent, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
+  resultNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  resultName: { fontSize: 15, color: C.text },
+  resultDiscontinued: { fontSize: 11, color: '#AAAAAA', fontStyle: 'italic' },
+  pickerSelectedCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.bg, borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 10,
+    borderWidth: 1, borderColor: '#FFD4B8',
+    marginBottom: 10,
+  },
+  pickerMakeLabel: { fontSize: 10, fontWeight: '700', color: C.accent, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 1 },
+  pickerMakeName: { fontSize: 15, fontWeight: '600', color: C.text },
+  changeText: { fontSize: 12, color: C.textMuted, fontWeight: '600' },
+  addModelBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 8 },
+  addModelBtnText: { fontSize: 14, color: C.accent, fontWeight: '600' },
+  pickerActions: { marginTop: 10, gap: 6 },
+  addVehicleConfirmBtn: {
+    backgroundColor: C.accent, borderRadius: 10,
+    paddingVertical: 11, alignItems: 'center',
+  },
+  addVehicleConfirmText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  cancelPickerBtn: { paddingVertical: 6, alignItems: 'center' },
+  cancelPickerText: { fontSize: 13, color: C.textMuted },
+  yearInput: {
+    backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: C.text, width: 120,
   },
 
-  // ── Error ─────────────────────────────────────────────────────
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 16,
-  },
-  errorText: {
-    color: '#F87171',
-    fontSize: 14,
-    flex: 1,
-  },
+  errorBox: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16 },
+  errorText: { color: '#F87171', fontSize: 14, flex: 1 },
 
-  // ── Bottom submit button ──────────────────────────────────────
   submitBtn: {
-    marginTop: 28,
-    backgroundColor: C.accent,
-    borderRadius: 12,
-    paddingVertical: 15,
-    alignItems: 'center',
+    marginTop: 28, backgroundColor: C.accent, borderRadius: 12,
+    paddingVertical: 15, alignItems: 'center',
   },
   submitBtnDisabled: { backgroundColor: '#CCCCCC' },
-  submitBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

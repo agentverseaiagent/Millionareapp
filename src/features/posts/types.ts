@@ -27,6 +27,17 @@ export const CATEGORY_LABELS: Record<PostCategory, string> = {
   question: 'Question',
 };
 
+export interface PostVehicleAttachment {
+  make_id?: string;
+  make_name?: string;
+  model_id?: string;
+  model_name?: string;
+  model_slug?: string;
+  trim_id?: string;
+  trim_name?: string;
+  year?: number;
+}
+
 export interface Post {
   id: string;
   author_id: string;
@@ -37,6 +48,8 @@ export interface Post {
   vehicle_year: number | null;
   body: string;
   category: PostCategory | null;
+  categories: PostCategory[];
+  vehicle_attachments: PostVehicleAttachment[];
   created_at: string;
   vehicle_model?: {
     id: string;
@@ -50,6 +63,9 @@ export interface Post {
 
 export interface CreatePostInput {
   body: string;
+  categories?: PostCategory[];
+  vehicle_attachments?: PostVehicleAttachment[];
+  // Legacy single-vehicle fields (still written for feed compat)
   vehicle_make_id?: string;
   vehicle_model_id?: string;
   vehicle_trim_id?: string;

@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import type { Post } from '../features/posts/types';
+import type { Post, PostVehicleAttachment } from '../features/posts/types';
 import { CATEGORY_LABELS } from '../features/posts/types';
 import { relativeTime, CATEGORY_STYLE } from '../utils/postUtils';
 
@@ -22,26 +22,46 @@ interface Props {
   onDelete?: (postId: string) => void;
 }
 
+function vehicleLabel(v: PostVehicleAttachment): string {
+  const parts: string[] = [];
+  if (v.make_name) parts.push(v.make_name);
+  if (v.model_name) parts.push(v.model_name);
+  else if (parts.length === 0) return '';
+  if (v.trim_name) parts.push(v.trim_name);
+  if (v.year) parts.push(String(v.year));
+  return parts.join(' · ');
+}
+
 export function PostCard({ post, showModel = true, currentUserId, onDelete }: Props) {
   const router = useRouter();
 
-  // Build vehicle label from make/model/trim/year — handle both old and new post shapes
-  const vehicleLabel = (() => {
+  // Build vehicle list — prefer new vehicle_attachments, fall back to old FK joins
+  const vehicles: { label: string; slug: string | null }[] = (() => {
+    if (post.vehicle_attachments?.length > 0) {
+      return post.vehicle_attachments
+        .map(v => ({ label: vehicleLabel(v), slug: v.model_slug ?? null }))
+        .filter(v => v.label);
+    }
+    // Legacy single-vehicle fallback
     if (post.vehicle_model) {
       const make = post.vehicle_model.vehicle_makes?.name ?? post.vehicle_make?.name ?? '';
       const model = post.vehicle_model.name;
-      const base = `${make} ${model}`.trim();
-      const parts = [base];
+      const parts = [`${make} ${model}`.trim()];
       if (post.vehicle_trim?.name) parts.push(post.vehicle_trim.name);
       if (post.vehicle_year) parts.push(String(post.vehicle_year));
-      return parts.join(' · ');
+      return [{ label: parts.join(' · '), slug: post.vehicle_model.slug }];
     }
-    if (post.vehicle_make) return post.vehicle_make.name;
-    return null;
+    if (post.vehicle_make) {
+      return [{ label: post.vehicle_make.name, slug: null }];
+    }
+    return [];
   })();
-  const modelSlug = post.vehicle_model?.slug ?? null;
 
-  const catStyle = post.category ? CATEGORY_STYLE[post.category] : null;
+  // Build categories list — prefer new array, fall back to old single
+  const cats = post.categories?.length > 0
+    ? post.categories
+    : post.category ? [post.category] : [];
+
   const isOwner = !!currentUserId && currentUserId === post.author_id;
 
   const handleDelete = () => {
@@ -56,25 +76,26 @@ export function PostCard({ post, showModel = true, currentUserId, onDelete }: Pr
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={() => router.push(`/post/${post.id}`)}
     >
-      {/* Vehicle tag + time + delete row */}
+      {/* Top row: vehicle tags + time + delete */}
       <View style={styles.topRow}>
-        {showModel && vehicleLabel ? (
-          modelSlug ? (
-            <TouchableOpacity
-              onPress={e => { e.stopPropagation?.(); router.push(`/vehicle/${modelSlug}`); }}
-              style={styles.vehicleTag}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            >
-              <Text style={styles.vehicleTagText}>{vehicleLabel}</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.vehicleTag}>
-              <Text style={styles.vehicleTagText}>{vehicleLabel}</Text>
-            </View>
-          )
-        ) : (
-          <View />
-        )}
+        <View style={styles.vehicleTags}>
+          {showModel && vehicles.map((v, i) =>
+            v.slug ? (
+              <TouchableOpacity
+                key={i}
+                onPress={e => { e.stopPropagation?.(); router.push(`/vehicle/${v.slug}`); }}
+                style={styles.vehicleTag}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Text style={styles.vehicleTagText}>{v.label}</Text>
+              </TouchableOpacity>
+            ) : (
+              <View key={i} style={styles.vehicleTag}>
+                <Text style={styles.vehicleTagText}>{v.label}</Text>
+              </View>
+            )
+          )}
+        </View>
         <View style={styles.topRight}>
           <Text style={styles.time}>{relativeTime(post.created_at)}</Text>
           {isOwner && (
@@ -97,12 +118,20 @@ export function PostCard({ post, showModel = true, currentUserId, onDelete }: Pr
       {/* Body */}
       <Text style={styles.body}>{post.body}</Text>
 
-      {/* Category badge */}
-      {post.category && catStyle && (
-        <View style={[styles.categoryBadge, { backgroundColor: catStyle.bg }]}>
-          <Text style={[styles.categoryText, { color: catStyle.text }]}>
-            {CATEGORY_LABELS[post.category]}
-          </Text>
+      {/* Category badges */}
+      {cats.length > 0 && (
+        <View style={styles.categoryRow}>
+          {cats.map(cat => {
+            const catStyle = CATEGORY_STYLE[cat];
+            if (!catStyle) return null;
+            return (
+              <View key={cat} style={[styles.categoryBadge, { backgroundColor: catStyle.bg }]}>
+                <Text style={[styles.categoryText, { color: catStyle.text }]}>
+                  {CATEGORY_LABELS[cat]}
+                </Text>
+              </View>
+            );
+          })}
         </View>
       )}
     </Pressable>
@@ -117,14 +146,19 @@ const styles = StyleSheet.create({
     borderBottomColor: C.border,
     backgroundColor: C.bg,
   },
-  cardPressed: {
-    opacity: 0.75,
-  },
+  cardPressed: { opacity: 0.75 },
   topRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: 8,
+    gap: 8,
+  },
+  vehicleTags: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   vehicleTag: {
     backgroundColor: '#FFF4EE',
@@ -141,17 +175,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   topRight: {
-    flexDirection: 'row' as const,
-    alignItems: 'center' as const,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
+    flexShrink: 0,
   },
-  time: {
-    fontSize: 12,
-    color: C.textFaint,
-  },
-  deleteBtn: {
-    padding: 2,
-  },
+  time: { fontSize: 12, color: C.textFaint },
+  deleteBtn: { padding: 2 },
   author: {
     fontSize: 12,
     color: C.textMuted,
@@ -163,6 +193,11 @@ const styles = StyleSheet.create({
     color: C.text,
     lineHeight: 22,
     marginBottom: 10,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
   },
   categoryBadge: {
     alignSelf: 'flex-start',
