@@ -104,12 +104,30 @@ export async function deletePost(postId: string): Promise<void> {
 }
 
 export async function getMakeFeed(vehicleMakeId: string, limit = 30, offset = 0): Promise<Post[]> {
-  const { data, error } = await supabase
+  // Fetch all model IDs for this make so we can include model-tagged posts
+  // (older posts may only have vehicle_model_id set, not vehicle_make_id)
+  const { data: modelRows } = await supabase
+    .from('vehicle_models')
+    .select('id')
+    .eq('make_id', vehicleMakeId);
+
+  const modelIds = (modelRows ?? []).map((r: any) => r.id);
+
+  let query = supabase
     .from('posts')
     .select(POST_SELECT)
-    .eq('vehicle_make_id', vehicleMakeId)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
+
+  if (modelIds.length > 0) {
+    query = query.or(
+      `vehicle_make_id.eq.${vehicleMakeId},vehicle_model_id.in.(${modelIds.join(',')})`
+    );
+  } else {
+    query = query.eq('vehicle_make_id', vehicleMakeId);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data || []) as unknown as Post[];
 }
