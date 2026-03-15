@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Git & GitHub
 
 This project uses GitHub for version control. This is a strict requirement:
-- Commit after every complete, stable, meaningful unit of work (new feature, bug fix, config change, etc.)
+- Commit after every complete, stable, meaningful unit of work
 - Push immediately after each such commit — never leave work only local
 - Write clean, descriptive commit messages that explain what changed and why
 - Do not batch unrelated changes into one commit
@@ -17,43 +17,57 @@ Repository: https://github.com/agentverseaiagent/Millionareapp
 
 - **Name:** Garagetwits
 - **Focus:** U.S. car market
-- **Inspiration:** Stocktwits, but for car owners — not a clone
-- **Core concept:** Canonical vehicle model communities (one model, one community)
+- **Inspiration:** Stocktwits-style feed rhythm applied to car ownership — not a clone
+- **Core concept:** Model-centric communities with optional structured vehicle attachment
 
 ## Product Purpose
 
-Garagetwits helps U.S. car shoppers and owners exchange model-specific intelligence.
+Garagetwits helps U.S. car shoppers and owners exchange vehicle-specific intelligence.
 
 Primary value:
-- Price paid discussion
+- Price paid and deal discussion
 - Lease and finance discussion
 - Ownership issues and maintenance experiences
-- Buying advice and reviews
+- Buying advice and model-specific reviews
 
 This is not a generic social network, marketplace, or dealer CRM.
 
+## Vehicle Attachment
+
+Posts support optional structured vehicle attachment in the following hierarchy:
+- Make (e.g. Honda)
+- Make + Model (e.g. Honda CR-V)
+- Make + Model + Trim (e.g. Honda CR-V EX-L)
+- Make + Model + Trim + Year (e.g. 2025 Honda CR-V EX-L)
+
+Rules:
+- Make can be attached without a model
+- Model requires a make
+- Trim requires a model
+- Year can be added at any level but is most meaningful with trim
+- Trim and year are structured metadata — they do not automatically create separate top-level communities
+
 ## Vehicle Search and Discovery
 
-Search must support all of these query types:
+Search must support all of these:
 - Make discovery: `honda`, `bmw`, `toyota`
 - Model discovery: `crv`, `rogue`, `cx5`
 - Make + model queries: `honda crv`, `toyota rav4`
 - Alias normalization: `cr-v`, `crv`, `CR-V` → same canonical model
 
-Active U.S.-relevant models should be prioritized in results.
-
-Discontinued models must not be deleted blindly. Owners of discontinued models are part of the community and their models should remain surfaceable in search and model pages where relevant.
+Active U.S.-relevant models are prioritized. Discontinued models must not be deleted blindly — owners of discontinued models are part of the community.
 
 ## Core Product Constraints
 
-- Vehicle communities must be based on canonical `vehicle_model_id` records — not free text
+- Vehicle communities are anchored on canonical `vehicle_model_id` records — not free text
 - User-entered aliases must normalize to one canonical vehicle model
 - Community fragmentation must be avoided — one model, one community
+- Trims and years are annotation layers — they do not splinter the community
 - Keep route files thin — compose screens and call hooks only
-- Keep Supabase access inside `src/features/**/api.ts` files
+- All Supabase queries must live in `src/features/**/api.ts`
 - Shared types go in `src/features/**/types.ts`
 - Reusable UI goes in `src/components`
-- Shared utility functions (e.g., relativeTime, CATEGORY_STYLE) go in `src/utils/`
+- Shared utility functions go in `src/utils/`
 - The app must work on iOS, Android, and web
 
 ## UX Direction
@@ -61,13 +75,11 @@ Discontinued models must not be deleted blindly. Owners of discontinued models a
 Fast, clean, low-friction, mobile-first, feed-first. Web-compatible but not web-optimized.
 
 Priority UX traits:
+- Navigation should be clear and predictable at every step
+- Important user actions must feel immediate and reliable
+- Back behavior must work correctly everywhere
 - Low friction entry to all primary actions
-- Clear navigation with reliable back behavior
 - Obvious primary actions at every screen
-- Useful, dense information without clutter
-- No unnecessary complexity
-
-Current development priority: product quality, clean architecture, low redundancy, strong safety, low-bug implementation.
 
 ## Context Files
 
@@ -89,7 +101,6 @@ After each completed stable unit of work:
 - Before editing, inspect existing patterns and extend them
 - Prefer modifying existing modules over introducing new abstractions
 - Never create duplicate logic across files — centralize in utils or feature modules
-- For car models, always map user-entered tags to canonical `vehicle_model_id`
 - After changes, list every file modified and why
 
 ## Environment

@@ -18,9 +18,9 @@ Ordered list of upcoming work. Update this file as tasks are completed or priori
 - [x] Post detail screen with reply thread
 - [x] Vehicle catalog migration (NHTSA/vPIC sourced, consolidated migrations)
 - [x] Delete own post with confirmation
-- [x] Pull-to-refresh layout fix (FlatList as primary scroll container)
+- [x] Pull-to-refresh layout and gesture fix
 - [x] Search keyboard UX fix
-- [x] Auth screens subtitle and branding
+- [x] Auth screens branding and subtitle
 - [x] Feed loading state separation (isRefreshing vs initial load)
 - [x] Shared utilities (relativeTime, CATEGORY_STYLE, CATEGORY_ACCENT centralized)
 - [x] Discontinued model display (search results, model page header, informational banner)
@@ -35,33 +35,34 @@ Ordered list of upcoming work. Update this file as tasks are completed or priori
 ## Active Workstreams
 
 ### 1. Rework app shell, navigation, and feed UX
-The current product has a scaffold feel. Navigation needs to feel intentional.
-- [ ] Review all back/cancel navigation paths for correctness
-- [ ] Improve feed header and tab identity
+- [ ] Audit all back/cancel navigation paths for correctness
+- [ ] Fix follow/unfollow state not updating immediately in profile and following feed
+- [ ] Review feed header identity and rhythm
 - [ ] Show author username in posts (requires profile username feature)
 - [ ] Pagination for feeds (load more as user scrolls)
 
 ### 2. Rework search and vehicle-catalog discovery
-Search must feel natural for all query patterns.
 - [ ] Audit alias table for coverage gaps (common nicknames not resolving)
-- [ ] Improve make alias support (e.g., "chevy" → Chevrolet)
+- [ ] Support make-level discovery in search (return make page, not just models)
 - [ ] Validate discontinued model coverage in catalog
+- [ ] Add make alias support (e.g., "chevy" → Chevrolet)
 
-### 3. Verify and maintain the vehicle catalog pipeline
-- [ ] Audit active/inactive model distribution in database
-- [ ] Define process for adding missing models
-- [ ] Trim/variant support deferred — document scope for when it arrives
+### 3. Vehicle attachment — make / model / trim / year
+This is the next major feature.
+- [ ] Schema migration: add `vehicle_make_id`, `vehicle_trim_id`, `vehicle_year` to posts
+- [ ] Add `vehicle_trims` table
+- [ ] Update TypeScript types for new post shape
+- [ ] Update post creation UI: cascading make → model → trim → year picker
+- [ ] Update search and API to support make-level queries returning a make page
+- [ ] Source trim data (EPA fueleconomy.gov API preferred for U.S. trims)
+- [ ] Update feed/post display to show make-only or trim/year-qualified vehicle attachment
 
 ### 4. User profile and identity
 - [ ] Allow users to set a display username
 - [ ] Show username in posts instead of user ID
 - [ ] Profile editing screen
 
-### 5. Improve reply and create-post flows
-- [ ] Verify create-post pre-selection works correctly from vehicle pages
-- [ ] Post character count visibility on post detail screen
-
-### 6. Polish and quality pass (ongoing)
+### 5. Polish and quality (ongoing)
 - [ ] Notifications tab design (likes, replies — scope TBD)
 - [ ] Verify email confirmation before first post
 - [ ] Web layout review

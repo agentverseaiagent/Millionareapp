@@ -13,14 +13,29 @@ These decisions are final and should not be revisited without explicit instructi
 - Supabase stores the canonical catalog (vehicle_makes, vehicle_models, vehicle_aliases)
 - Aliases are app-controlled — they are not auto-generated from upstream data
 - Active U.S.-relevant models are prioritized in all search results
-- Discontinued models must not be deleted — they remain in the catalog with `is_active = false`
-- Missing or discontinued upstream models should be marked inactive, not removed
-- Trim and variant support is deferred to a future phase
+- Discontinued models must not be deleted — they remain with `is_active = false` and can be surfaced where relevant
+
+## Vehicle Attachment on Posts
+- A post may be attached at any level in the vehicle hierarchy, or not at all
+- **Make-only attachment is allowed** — a post about "Honda in general" is valid
+- **Model is optional** — a post can be attached to a make without specifying a model
+- **Trim is optional** — a post can be attached to a model without specifying a trim
+- **Year is optional** — a post can include a model year at any attachment level
+- Hierarchy constraint: model requires make; trim requires model
+- Trim and year are structured metadata layers — they do not automatically create separate top-level communities
+- Clean hierarchy matters more than over-fragmentation
+
+## Community Structure
+- The canonical community is the vehicle model — one model, one community
+- Make-level pages may exist for browsing, but the canonical community anchor is the model
+- Trims and years do not get their own separate community feeds — they are filter/annotation layers
+- Community fragmentation must be avoided
 
 ## Data Model
 - Vehicle communities are based on canonical `vehicle_model_id` records — not free text
 - User-entered aliases ("crv", "cr-v", "honda crv") must be normalized to one canonical vehicle model
-- Community fragmentation must be avoided — one model, one community
+- Posts will eventually carry: `vehicle_make_id`, `vehicle_model_id` (nullable), `vehicle_trim_id` (nullable), `vehicle_year` (nullable SMALLINT)
+- This schema change is planned but not yet implemented
 
 ## Post Categories
 - `general` is the default fallback post category
@@ -37,8 +52,15 @@ These decisions are final and should not be revisited without explicit instructi
 - All Supabase queries live in `src/features/**/api.ts`
 - Shared types live in `src/features/**/types.ts`
 - Reusable UI lives in `src/components`
-- Shared utility functions (relativeTime, CATEGORY_STYLE, CATEGORY_ACCENT) live in `src/utils/`
+- Shared utility functions live in `src/utils/`
 - No duplicate logic across files
+
+## Trims and Year Data
+- Trim support is planned but not yet implemented
+- When implemented: `vehicle_trims` table with `(model_id, name, normalized_name, is_active)`
+- Year data will be a SMALLINT on the post — no separate year table needed
+- Trim data sourcing: EPA fuel economy API (fueleconomy.gov) is the preferred source for U.S. trim data by year
+- Trim/year feature scope will be defined when implementation begins
 
 ## Current Phase
 Rework and polish of core product feel — not blind feature expansion.
