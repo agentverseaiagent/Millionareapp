@@ -29,8 +29,9 @@ export default function ForgotPasswordScreen() {
       await requestPasswordReset(email.trim());
       setSent(true);
     } catch (err: any) {
-      // Don't reveal whether the email exists — always show success
-      // (Supabase already does this, but guard defensively)
+      // Log for debugging — common cause is redirectTo URL not in Supabase allowed list
+      console.error('[forgot-password] reset request failed:', err.message);
+      // Still show success to prevent email enumeration
       setSent(true);
     } finally {
       setLoading(false);
