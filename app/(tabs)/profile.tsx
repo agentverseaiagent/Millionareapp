@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { signOut } from '../../src/features/auth/api';
 import { getFollowedModels } from '../../src/features/vehicles/api';
@@ -30,14 +30,26 @@ export default function ProfileScreen() {
   const [followedModels, setFollowedModels] = useState<VehicleSearchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
+  const initialLoadDone = useRef(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
     getFollowedModels()
       .then(setFollowedModels)
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        initialLoadDone.current = true;
+      });
   }, []);
+
+  // Silently refresh followed models when this tab gains focus (after follow/unfollow elsewhere)
+  useFocusEffect(
+    useCallback(() => {
+      if (!initialLoadDone.current) return;
+      getFollowedModels().then(setFollowedModels).catch(() => {});
+    }, [])
+  );
 
   async function handleSignOut() {
     setSigningOut(true);

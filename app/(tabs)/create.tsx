@@ -92,8 +92,12 @@ export default function CreateScreen() {
   }, [attachment?.model_id]);
 
   const handleCancel = useCallback(() => {
-    router.replace('/(tabs)');
-  }, [router]);
+    if (params.preModelSlug) {
+      router.replace(`/vehicle/${params.preModelSlug}`);
+    } else {
+      router.replace('/(tabs)');
+    }
+  }, [router, params.preModelSlug]);
 
   const handleModelSearch = useCallback(async (text: string) => {
     setModelQuery(text);

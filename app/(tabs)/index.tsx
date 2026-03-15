@@ -8,7 +8,7 @@ import {
   StyleSheet,
   RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useGlobalFeed, useFollowingFeed } from '../../src/features/posts/hooks';
 import { deletePost } from '../../src/features/posts/api';
 import { PostCard } from '../../src/components/PostCard';
@@ -35,6 +35,13 @@ export default function HomeScreen() {
   const followingFeed = useFollowingFeed();
 
   const active = mode === 'all' ? globalFeed : followingFeed;
+
+  // Silently refresh following feed whenever this tab gains focus (e.g. after follow/unfollow)
+  useFocusEffect(
+    useCallback(() => {
+      followingFeed.refresh();
+    }, [followingFeed.refresh])
+  );
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
