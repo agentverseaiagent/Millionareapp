@@ -1,8 +1,8 @@
 import { supabase } from '../../lib/supabase';
 import { normalizeQuery } from './utils';
-import type { VehicleModel, VehicleSearchResult } from './types';
+import type { VehicleModel, VehicleSearchResult, VehicleTrim } from './types';
 
-const MODEL_SELECT = 'id, name, slug, is_active, vehicle_makes!inner(name)';
+const MODEL_SELECT = 'id, name, slug, is_active, vehicle_makes!inner(id, name)';
 
 /**
  * Full make+model+alias search.
@@ -28,11 +28,13 @@ export async function searchVehicles(rawQuery: string): Promise<VehicleSearchRes
     if (!row || seen.has(row.id)) return;
     seen.add(row.id);
     const makeName = row.vehicle_makes?.name ?? '';
+    const makeId = row.vehicle_makes?.id ?? '';
     results.push({
       id: row.id,
       name: row.name,
       slug: row.slug,
       make_name: makeName,
+      make_id: makeId,
       display_name: `${makeName} ${row.name}`.trim(),
       is_discontinued: row.is_active === false,
     });
@@ -77,6 +79,17 @@ export async function searchVehicles(rawQuery: string): Promise<VehicleSearchRes
     : null;
 
   if (fullMakeMatch) {
+    // Prepend a make-level result so users can attach to a make without picking a model
+    results.unshift({
+      id: fullMakeMatch.id,
+      name: fullMakeMatch.name,
+      slug: fullMakeMatch.slug,
+      make_name: fullMakeMatch.name,
+      make_id: fullMakeMatch.id,
+      display_name: fullMakeMatch.name,
+      is_make_result: true,
+    });
+
     // Active models for this make first
     const { data: activeModels } = await supabase
       .from('vehicle_models')
@@ -185,7 +198,7 @@ export async function getFollowedModels(): Promise<VehicleSearchResult[]> {
       vehicle_model_id,
       vehicle_models!inner(
         id, name, slug, is_active,
-        vehicle_makes!inner(name)
+        vehicle_makes!inner(id, name)
       )
     `);
   if (error) throw error;
@@ -194,7 +207,19 @@ export async function getFollowedModels(): Promise<VehicleSearchResult[]> {
     name: row.vehicle_models.name,
     slug: row.vehicle_models.slug,
     make_name: row.vehicle_models.vehicle_makes.name,
+    make_id: row.vehicle_models.vehicle_makes.id,
     display_name: `${row.vehicle_models.vehicle_makes.name} ${row.vehicle_models.name}`,
     is_discontinued: row.vehicle_models.is_active === false,
   }));
+}
+
+export async function getTrimsForModel(modelId: string): Promise<VehicleTrim[]> {
+  const { data, error } = await supabase
+    .from('vehicle_trims')
+    .select('id, model_id, name, normalized_name, source, is_active, created_at')
+    .eq('model_id', modelId)
+    .eq('is_active', true)
+    .order('name');
+  if (error) return [];
+  return data as VehicleTrim[];
 }

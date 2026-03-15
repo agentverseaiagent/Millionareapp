@@ -2,11 +2,14 @@ import { supabase } from '../../lib/supabase';
 import type { Post, CreatePostInput, PostComment } from './types';
 
 const POST_SELECT = `
-  id, author_id, vehicle_model_id, body, category, created_at,
+  id, author_id, vehicle_make_id, vehicle_model_id, vehicle_trim_id, vehicle_year,
+  body, category, created_at,
   vehicle_model:vehicle_models(
     id, name, slug,
-    vehicle_makes(name)
-  )
+    vehicle_makes(id, name)
+  ),
+  vehicle_make:vehicle_makes!vehicle_make_id(id, name, slug),
+  vehicle_trim:vehicle_trims!vehicle_trim_id(id, name)
 `;
 
 export async function getGlobalFeed(limit = 30, offset = 0): Promise<Post[]> {
@@ -96,7 +99,10 @@ export async function createPost(input: CreatePostInput): Promise<Post> {
     .insert({
       author_id: user.id,
       body: input.body.trim(),
+      vehicle_make_id: input.vehicle_make_id ?? null,
       vehicle_model_id: input.vehicle_model_id ?? null,
+      vehicle_trim_id: input.vehicle_trim_id ?? null,
+      vehicle_year: input.vehicle_year ?? null,
       category: input.category ?? 'general',
     })
     .select(POST_SELECT)

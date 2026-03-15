@@ -79,21 +79,37 @@ export default function PostScreen() {
     );
   }
 
-  const makeName = post.vehicle_model?.vehicle_makes?.name;
-  const modelName = post.vehicle_model?.name;
-  const modelDisplay = makeName && modelName ? `${makeName} ${modelName}` : null;
+  const vehicleLabel = (() => {
+    if (post.vehicle_model) {
+      const make = post.vehicle_model.vehicle_makes?.name ?? post.vehicle_make?.name ?? '';
+      const model = post.vehicle_model.name;
+      const parts = [`${make} ${model}`.trim()];
+      if (post.vehicle_trim?.name) parts.push(post.vehicle_trim.name);
+      if (post.vehicle_year) parts.push(String(post.vehicle_year));
+      return parts.join(' · ');
+    }
+    if (post.vehicle_make) return post.vehicle_make.name;
+    return null;
+  })();
+  const modelSlug = post.vehicle_model?.slug ?? null;
   const catStyle = post.category ? CATEGORY_STYLE[post.category] : null;
 
   const PostHeader = (
     <View style={styles.postBlock}>
       {/* Vehicle tag */}
-      {modelDisplay && (
-        <TouchableOpacity
-          style={styles.vehicleTag}
-          onPress={() => router.push(`/vehicle/${post.vehicle_model!.slug}`)}
-        >
-          <Text style={styles.vehicleTagText}>{modelDisplay}</Text>
-        </TouchableOpacity>
+      {vehicleLabel && (
+        modelSlug ? (
+          <TouchableOpacity
+            style={styles.vehicleTag}
+            onPress={() => router.push(`/vehicle/${modelSlug}`)}
+          >
+            <Text style={styles.vehicleTagText}>{vehicleLabel}</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.vehicleTag}>
+            <Text style={styles.vehicleTagText}>{vehicleLabel}</Text>
+          </View>
+        )
       )}
 
       {/* Body */}

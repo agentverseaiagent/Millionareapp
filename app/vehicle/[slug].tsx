@@ -145,10 +145,11 @@ export default function VehicleScreen() {
               onPress={() => router.push({
                 pathname: '/(tabs)/create',
                 params: {
+                  preMakeId: model.make?.id ?? model.make_id,
+                  preMakeName: makeName,
                   preModelId: model.id,
                   preModelSlug: model.slug,
                   preModelName: model.name,
-                  preMakeName: makeName,
                 },
               })}
             >

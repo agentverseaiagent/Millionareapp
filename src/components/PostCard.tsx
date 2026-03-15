@@ -24,9 +24,23 @@ interface Props {
 
 export function PostCard({ post, showModel = true, currentUserId, onDelete }: Props) {
   const router = useRouter();
-  const makeName = post.vehicle_model?.vehicle_makes?.name;
-  const modelName = post.vehicle_model?.name;
-  const modelDisplay = makeName && modelName ? `${makeName} ${modelName}` : null;
+
+  // Build vehicle label from make/model/trim/year — handle both old and new post shapes
+  const vehicleLabel = (() => {
+    if (post.vehicle_model) {
+      const make = post.vehicle_model.vehicle_makes?.name ?? post.vehicle_make?.name ?? '';
+      const model = post.vehicle_model.name;
+      const base = `${make} ${model}`.trim();
+      const parts = [base];
+      if (post.vehicle_trim?.name) parts.push(post.vehicle_trim.name);
+      if (post.vehicle_year) parts.push(String(post.vehicle_year));
+      return parts.join(' · ');
+    }
+    if (post.vehicle_make) return post.vehicle_make.name;
+    return null;
+  })();
+  const modelSlug = post.vehicle_model?.slug ?? null;
+
   const catStyle = post.category ? CATEGORY_STYLE[post.category] : null;
   const isOwner = !!currentUserId && currentUserId === post.author_id;
 
@@ -44,14 +58,20 @@ export function PostCard({ post, showModel = true, currentUserId, onDelete }: Pr
     >
       {/* Vehicle tag + time + delete row */}
       <View style={styles.topRow}>
-        {showModel && modelDisplay ? (
-          <TouchableOpacity
-            onPress={e => { e.stopPropagation?.(); router.push(`/vehicle/${post.vehicle_model!.slug}`); }}
-            style={styles.vehicleTag}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-          >
-            <Text style={styles.vehicleTagText}>{modelDisplay}</Text>
-          </TouchableOpacity>
+        {showModel && vehicleLabel ? (
+          modelSlug ? (
+            <TouchableOpacity
+              onPress={e => { e.stopPropagation?.(); router.push(`/vehicle/${modelSlug}`); }}
+              style={styles.vehicleTag}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Text style={styles.vehicleTagText}>{vehicleLabel}</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.vehicleTag}>
+              <Text style={styles.vehicleTagText}>{vehicleLabel}</Text>
+            </View>
+          )
         ) : (
           <View />
         )}

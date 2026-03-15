@@ -30,7 +30,10 @@ export const CATEGORY_LABELS: Record<PostCategory, string> = {
 export interface Post {
   id: string;
   author_id: string;
+  vehicle_make_id: string | null;
   vehicle_model_id: string | null;
+  vehicle_trim_id: string | null;
+  vehicle_year: number | null;
   body: string;
   category: PostCategory | null;
   created_at: string;
@@ -38,13 +41,18 @@ export interface Post {
     id: string;
     name: string;
     slug: string;
-    vehicle_makes?: { name: string };
+    vehicle_makes?: { id: string; name: string };
   } | null;
+  vehicle_make?: { id: string; name: string; slug: string } | null;
+  vehicle_trim?: { id: string; name: string } | null;
 }
 
 export interface CreatePostInput {
   body: string;
+  vehicle_make_id?: string;
   vehicle_model_id?: string;
+  vehicle_trim_id?: string;
+  vehicle_year?: number;
   category?: PostCategory;
 }
 
