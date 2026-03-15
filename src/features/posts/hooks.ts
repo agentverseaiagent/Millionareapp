@@ -33,7 +33,10 @@ export function useGlobalFeed() {
     setLoadingMore(true);
     try {
       const data = await getGlobalFeed(PAGE_SIZE, offsetRef.current);
-      setPosts(prev => [...prev, ...data]);
+      setPosts(prev => {
+        const seen = new Set(prev.map(p => p.id));
+        return [...prev, ...data.filter(p => !seen.has(p.id))];
+      });
       setHasMore(data.length === PAGE_SIZE);
       offsetRef.current += data.length;
     } catch {
@@ -77,7 +80,10 @@ export function useFollowingFeed() {
     setLoadingMore(true);
     try {
       const data = await getFollowingFeed(PAGE_SIZE, offsetRef.current);
-      setPosts(prev => [...prev, ...data]);
+      setPosts(prev => {
+        const seen = new Set(prev.map(p => p.id));
+        return [...prev, ...data.filter(p => !seen.has(p.id))];
+      });
       setHasMore(data.length === PAGE_SIZE);
       offsetRef.current += data.length;
     } catch {
