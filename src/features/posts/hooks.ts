@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getGlobalFeed, getModelFeed } from './api';
+import { getGlobalFeed, getFollowingFeed, getModelFeed } from './api';
 import type { Post } from './types';
 
 export function useGlobalFeed() {
@@ -12,6 +12,28 @@ export function useGlobalFeed() {
     setError(null);
     try {
       setPosts(await getGlobalFeed());
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  return { posts, loading, error, refresh };
+}
+
+export function useFollowingFeed() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setPosts(await getFollowingFeed());
     } catch (err: any) {
       setError(err.message);
     } finally {

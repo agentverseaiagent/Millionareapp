@@ -1,5 +1,14 @@
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { VehicleSearchResult } from '../features/vehicles/types';
+
+const C = {
+  bg: '#0F0F0F',
+  border: '#262626',
+  accent: '#E05A00',
+  text: '#F0F0F0',
+  textMuted: '#888',
+};
 
 interface Props {
   item: VehicleSearchResult;
@@ -9,21 +18,39 @@ interface Props {
 export function VehicleModelItem({ item, onPress }: Props) {
   return (
     <TouchableOpacity style={styles.item} onPress={() => onPress(item)}>
-      <Text style={styles.name}>{item.display_name}</Text>
+      <View style={styles.content}>
+        <Text style={styles.make}>{item.make_name}</Text>
+        <Text style={styles.model}>{item.name}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color={C.textMuted} />
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   item: {
-    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
     paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e5e5',
-    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A1A',
+    backgroundColor: C.bg,
   },
-  name: {
+  content: {
+    flex: 1,
+  },
+  make: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: C.accent,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  model: {
     fontSize: 16,
-    color: '#111',
+    color: C.text,
+    fontWeight: '500',
   },
 });

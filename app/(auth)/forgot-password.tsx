@@ -7,48 +7,59 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { requestPasswordReset } from '../../src/features/auth/api';
+
+const C = {
+  bg: '#0A0A0A',
+  surface: '#181818',
+  border: '#2A2A2A',
+  accent: '#E05A00',
+  text: '#F0F0F0',
+  textMuted: '#888',
+  error: '#F87171',
+};
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
   async function handleRequest() {
-    if (!email.trim()) {
-      setError('Please enter your email address.');
-      return;
-    }
-    setError(null);
+    if (!email.trim()) return;
     setLoading(true);
     try {
       await requestPasswordReset(email.trim());
-      setSent(true);
     } catch (err: any) {
-      // Log for debugging — common cause is redirectTo URL not in Supabase allowed list
       console.error('[forgot-password] reset request failed:', err.message);
-      // Still show success to prevent email enumeration
-      setSent(true);
     } finally {
       setLoading(false);
+      // Always show success — prevents email enumeration
+      setSent(true);
     }
   }
 
   if (sent) {
     return (
-      <KeyboardAvoidingView style={styles.container}>
-        <Text style={styles.title}>Check your email</Text>
-        <Text style={styles.body}>
-          If an account exists for {email.trim()}, you'll receive a password reset link shortly.
+      <View style={styles.successContainer}>
+        <Ionicons name="mail-outline" size={48} color={C.accent} />
+        <Text style={styles.successTitle}>Check your email</Text>
+        <Text style={styles.successBody}>
+          If an account exists for{'\n'}
+          <Text style={{ color: C.text }}>{email.trim()}</Text>
+          {'\n'}you'll receive a reset link shortly.
         </Text>
-        <TouchableOpacity style={styles.button} onPress={() => router.replace('/(auth)/sign-in')}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.replace('/(auth)/sign-in')}
+        >
           <Text style={styles.buttonText}>Back to Sign In</Text>
         </TouchableOpacity>
-      </KeyboardAvoidingView>
+      </View>
     );
   }
 
@@ -57,17 +68,20 @@ export default function ForgotPasswordScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <TouchableOpacity style={styles.backRow} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={20} color={C.textMuted} />
+        <Text style={styles.backText}>Back</Text>
+      </TouchableOpacity>
+
       <Text style={styles.title}>Reset password</Text>
       <Text style={styles.body}>
-        Enter the email address for your account and we'll send you a reset link.
+        Enter your email and we'll send you a reset link.
       </Text>
-
-      {error && <Text style={styles.error}>{error}</Text>}
 
       <TextInput
         style={styles.input}
         placeholder="Email"
-        placeholderTextColor="#999"
+        placeholderTextColor={C.textMuted}
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
@@ -75,16 +89,15 @@ export default function ForgotPasswordScreen() {
         autoFocus
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleRequest} disabled={loading}>
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Send reset link</Text>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
-        <Text style={styles.cancelText}>Cancel</Text>
+      <TouchableOpacity
+        style={[styles.button, (!email.trim() || loading) && styles.buttonDisabled]}
+        onPress={handleRequest}
+        disabled={!email.trim() || loading}
+      >
+        {loading
+          ? <ActivityIndicator color="#fff" />
+          : <Text style={styles.buttonText}>Send reset link</Text>
+        }
       </TouchableOpacity>
     </KeyboardAvoidingView>
   );
@@ -93,53 +106,74 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#fff',
+    backgroundColor: C.bg,
+    paddingTop: 60,
+  },
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 40,
+  },
+  backText: {
+    color: C.textMuted,
+    fontSize: 15,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 26,
+    fontWeight: '800',
+    color: C.text,
     marginBottom: 10,
   },
   body: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 24,
+    color: C.textMuted,
+    marginBottom: 28,
     lineHeight: 20,
   },
   input: {
+    backgroundColor: '#111',
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: C.border,
     borderRadius: 8,
     padding: 14,
-    marginBottom: 12,
+    marginBottom: 16,
     fontSize: 16,
-    color: '#000',
+    color: C.text,
   },
   button: {
-    backgroundColor: '#000',
+    backgroundColor: C.accent,
     borderRadius: 8,
-    padding: 16,
+    padding: 15,
     alignItems: 'center',
-    marginTop: 4,
+  },
+  buttonDisabled: {
+    backgroundColor: '#2A2A2A',
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  error: {
-    color: '#d00',
-    marginBottom: 12,
-    fontSize: 14,
-  },
-  cancelButton: {
-    marginTop: 16,
+  successContainer: {
+    flex: 1,
+    backgroundColor: C.bg,
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: 40,
+    gap: 14,
   },
-  cancelText: {
-    color: '#555',
-    fontSize: 14,
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: C.text,
+    textAlign: 'center',
+  },
+  successBody: {
+    fontSize: 15,
+    color: C.textMuted,
+    textAlign: 'center',
+    lineHeight: 23,
   },
 });

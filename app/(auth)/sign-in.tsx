@@ -7,9 +7,20 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  View,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { signIn } from '../../src/features/auth/api';
+
+const C = {
+  bg: '#0A0A0A',
+  surface: '#181818',
+  border: '#2A2A2A',
+  accent: '#E05A00',
+  text: '#F0F0F0',
+  textMuted: '#888',
+  error: '#F87171',
+};
 
 function parseSignInError(message: string): string {
   const m = message.toLowerCase();
@@ -49,49 +60,60 @@ export default function SignInScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.appName}>Garagetwits</Text>
-      <Text style={styles.appSubtitle}>Car communities by model</Text>
+      <View style={styles.header}>
+        <Text style={styles.appName}>Garagetwits</Text>
+        <Text style={styles.appTagline}>Car communities by model</Text>
+      </View>
 
-      <Text style={styles.title}>Sign In</Text>
+      <View style={styles.form}>
+        <Text style={styles.formTitle}>Sign In</Text>
 
-      {error && <Text style={styles.error}>{error}</Text>}
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#999"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#999"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      <TouchableOpacity style={styles.button} onPress={handleSignIn} disabled={loading}>
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Sign In</Text>
+        {error && (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
         )}
-      </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.forgotButton}
-        onPress={() => router.push('/(auth)/forgot-password')}
-      >
-        <Text style={styles.forgotText}>Forgot password?</Text>
-      </TouchableOpacity>
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor={C.textMuted}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
 
-      <Link href="/(auth)/sign-up" style={styles.link}>
-        Don't have an account? Sign up
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor={C.textMuted}
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonLoading]}
+          onPress={handleSignIn}
+          disabled={loading}
+        >
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.buttonText}>Sign In</Text>
+          }
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.forgotButton}
+          onPress={() => router.push('/(auth)/forgot-password')}
+        >
+          <Text style={styles.forgotText}>Forgot password?</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Link href="/(auth)/sign-up" style={styles.switchLink}>
+        Don't have an account? <Text style={styles.switchLinkAccent}>Sign up</Text>
       </Link>
     </KeyboardAvoidingView>
   );
@@ -102,62 +124,89 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#fff',
+    backgroundColor: C.bg,
+  },
+  header: {
+    marginBottom: 40,
   },
   appName: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '800',
     letterSpacing: -0.5,
+    color: C.text,
     marginBottom: 4,
   },
-  appSubtitle: {
+  appTagline: {
     fontSize: 14,
-    color: '#888',
-    marginBottom: 36,
+    color: C.textMuted,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
+  form: {
+    backgroundColor: C.surface,
+    borderRadius: 14,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: C.border,
     marginBottom: 20,
   },
-  input: {
+  formTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: C.text,
+    marginBottom: 18,
+  },
+  errorBox: {
+    backgroundColor: '#2E0A0A',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#5A1A1A',
+  },
+  errorText: {
+    color: C.error,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  input: {
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: C.border,
     borderRadius: 8,
     padding: 14,
     marginBottom: 12,
     fontSize: 16,
-    color: '#000',
+    color: C.text,
   },
   button: {
-    backgroundColor: '#000',
+    backgroundColor: C.accent,
     borderRadius: 8,
-    padding: 16,
+    padding: 15,
     alignItems: 'center',
     marginTop: 4,
+  },
+  buttonLoading: {
+    opacity: 0.7,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  error: {
-    color: '#d00',
-    marginBottom: 12,
-    fontSize: 14,
+    fontWeight: '700',
   },
   forgotButton: {
     marginTop: 14,
     alignItems: 'center',
   },
   forgotText: {
-    color: '#555',
+    color: C.textMuted,
     fontSize: 14,
   },
-  link: {
-    marginTop: 20,
+  switchLink: {
     textAlign: 'center',
-    color: '#555',
+    color: C.textMuted,
     fontSize: 14,
+  },
+  switchLinkAccent: {
+    color: C.accent,
+    fontWeight: '600',
   },
 });

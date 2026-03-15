@@ -7,11 +7,22 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../src/lib/supabase';
 import { signOut } from '../../src/features/auth/api';
 import { getFollowedModels } from '../../src/features/vehicles/api';
 import type { VehicleSearchResult } from '../../src/features/vehicles/types';
+
+const C = {
+  bg: '#0F0F0F',
+  surface: '#1A1A1A',
+  border: '#262626',
+  accent: '#E05A00',
+  text: '#F0F0F0',
+  textMuted: '#888',
+  textFaint: '#555',
+};
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -39,7 +50,11 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
+      {/* User header */}
       <View style={styles.userSection}>
+        <View style={styles.avatar}>
+          <Ionicons name="person" size={22} color={C.textMuted} />
+        </View>
         <Text style={styles.email} numberOfLines={1}>{email ?? '—'}</Text>
         <TouchableOpacity
           style={styles.signOutButton}
@@ -53,15 +68,25 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>Following</Text>
+      {/* Following section */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Following</Text>
+        <TouchableOpacity onPress={() => router.push('/(tabs)/search')}>
+          <Text style={styles.addLink}>+ Add</Text>
+        </TouchableOpacity>
+      </View>
 
       {loading ? (
-        <ActivityIndicator style={styles.loader} />
+        <ActivityIndicator style={styles.loader} color={C.accent} />
       ) : followedModels.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>You're not following any models yet.</Text>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/search')}>
-            <Text style={styles.emptyLink}>Search for a model →</Text>
+          <Ionicons name="car-outline" size={40} color={C.textFaint} />
+          <Text style={styles.emptyText}>Not following any models yet.</Text>
+          <TouchableOpacity
+            style={styles.discoverButton}
+            onPress={() => router.push('/(tabs)/search')}
+          >
+            <Text style={styles.discoverButtonText}>Discover Models</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -73,8 +98,11 @@ export default function ProfileScreen() {
               style={styles.modelRow}
               onPress={() => router.push(`/vehicle/${item.slug}`)}
             >
-              <Text style={styles.modelName}>{item.display_name}</Text>
-              <Text style={styles.chevron}>›</Text>
+              <View style={styles.modelRowContent}>
+                <Text style={styles.modelRowMake}>{item.make_name}</Text>
+                <Text style={styles.modelRowName}>{item.name}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={C.textFaint} />
             </TouchableOpacity>
           )}
         />
@@ -84,46 +112,93 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: C.bg },
   userSection: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e5e5',
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
     gap: 12,
   },
-  email: { flex: 1, fontSize: 15, color: '#333' },
-  signOutButton: {
-    backgroundColor: '#000',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    minWidth: 90,
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: C.surface,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
   },
-  signOutText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  email: {
+    flex: 1,
+    fontSize: 14,
+    color: C.textMuted,
+  },
+  signOutButton: {
+    backgroundColor: C.surface,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    minWidth: 82,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  signOutText: { color: C.text, fontSize: 13, fontWeight: '600' },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 20,
+    paddingBottom: 10,
   },
-  loader: { marginTop: 24 },
-  empty: { padding: 24, alignItems: 'center', gap: 10 },
-  emptyText: { color: '#888', fontSize: 14 },
-  emptyLink: { color: '#0066cc', fontSize: 14 },
+  sectionTitle: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: C.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+  },
+  addLink: {
+    fontSize: 14,
+    color: C.accent,
+    fontWeight: '600',
+  },
+  loader: { marginTop: 32 },
+  empty: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+    paddingHorizontal: 32,
+  },
+  emptyText: { color: C.textMuted, fontSize: 14, textAlign: 'center' },
+  discoverButton: {
+    backgroundColor: C.accent,
+    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  discoverButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   modelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 13,
     paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e5e5',
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
-  modelName: { flex: 1, fontSize: 15, color: '#111' },
-  chevron: { fontSize: 20, color: '#ccc' },
+  modelRowContent: { flex: 1 },
+  modelRowMake: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: C.accent,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  modelRowName: { fontSize: 15, color: C.text, fontWeight: '500' },
 });

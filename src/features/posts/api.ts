@@ -19,6 +19,27 @@ export async function getGlobalFeed(limit = 30, offset = 0): Promise<Post[]> {
   return (data || []) as Post[];
 }
 
+export async function getFollowingFeed(limit = 30, offset = 0): Promise<Post[]> {
+  const { data: follows } = await supabase
+    .from('user_model_follows')
+    .select('vehicle_model_id');
+
+  const modelIds = (follows ?? [])
+    .map((f: any) => f.vehicle_model_id)
+    .filter(Boolean);
+
+  if (modelIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from('posts')
+    .select(POST_SELECT)
+    .in('vehicle_model_id', modelIds)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+  if (error) throw error;
+  return (data || []) as Post[];
+}
+
 export async function getModelFeed(vehicleModelId: string, limit = 30, offset = 0): Promise<Post[]> {
   const { data, error } = await supabase
     .from('posts')

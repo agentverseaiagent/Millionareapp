@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import {
   getVehicleModelBySlug,
   isFollowingModel,
@@ -18,6 +19,16 @@ import {
 import { useModelFeed } from '../../src/features/posts/hooks';
 import { PostCard } from '../../src/components/PostCard';
 import type { VehicleModel } from '../../src/features/vehicles/types';
+
+const C = {
+  bg: '#0F0F0F',
+  surface: '#1A1A1A',
+  border: '#262626',
+  accent: '#E05A00',
+  text: '#F0F0F0',
+  textMuted: '#888',
+  textFaint: '#555',
+};
 
 export default function VehicleScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -58,7 +69,7 @@ export default function VehicleScreen() {
   if (modelLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator color={C.accent} size="large" />
       </View>
     );
   }
@@ -66,10 +77,11 @@ export default function VehicleScreen() {
   if (!model) {
     return (
       <View style={styles.center}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backLink}>‹ Back</Text>
-        </TouchableOpacity>
         <Text style={styles.notFound}>Vehicle not found.</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={16} color={C.accent} />
+          <Text style={styles.backBtnText}>Go back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -79,39 +91,58 @@ export default function VehicleScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backText}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.modelName} numberOfLines={1}>{fullName}</Text>
-        <TouchableOpacity
-          style={[styles.followButton, following && styles.followButtonActive]}
-          onPress={handleFollow}
-          disabled={followLoading}
-        >
-          <Text style={[styles.followButtonText, following && styles.followButtonTextActive]}>
-            {followLoading ? '…' : following ? 'Following' : 'Follow'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* Native stack header title */}
+      <Stack.Screen
+        options={{
+          title: fullName,
+          headerStyle: { backgroundColor: C.bg },
+          headerTintColor: C.text,
+          headerShadowVisible: false,
+          headerBackTitle: 'Back',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={handleFollow}
+              disabled={followLoading}
+              style={[styles.followBtn, following && styles.followBtnActive]}
+            >
+              {followLoading ? (
+                <ActivityIndicator size="small" color={following ? '#fff' : C.accent} />
+              ) : (
+                <Text style={[styles.followBtnText, following && styles.followBtnTextActive]}>
+                  {following ? 'Following' : 'Follow'}
+                </Text>
+              )}
+            </TouchableOpacity>
+          ),
+        }}
+      />
 
       <FlatList
         data={posts}
         keyExtractor={item => item.id}
         renderItem={({ item }) => <PostCard post={item} showModel={false} />}
-        refreshControl={<RefreshControl refreshing={postsLoading} onRefresh={refresh} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={postsLoading}
+            onRefresh={refresh}
+            tintColor={C.accent}
+          />
+        }
         ListHeaderComponent={
           <TouchableOpacity
             style={styles.postPrompt}
             onPress={() => router.push('/(tabs)/create')}
           >
-            <Text style={styles.postPromptText}>Share something about the {model.name}…</Text>
+            <Text style={styles.postPromptText}>
+              Share something about the {model.name}…
+            </Text>
+            <Ionicons name="create-outline" size={16} color={C.textFaint} />
           </TouchableOpacity>
         }
         ListEmptyComponent={
           postsLoading ? (
             <View style={styles.center}>
-              <ActivityIndicator />
+              <ActivityIndicator color={C.accent} />
             </View>
           ) : error ? (
             <View style={styles.center}>
@@ -119,7 +150,8 @@ export default function VehicleScreen() {
             </View>
           ) : (
             <View style={styles.center}>
-              <Text style={styles.emptyText}>No posts yet for this model.</Text>
+              <Ionicons name="chatbubble-outline" size={36} color={C.textFaint} />
+              <Text style={styles.emptyText}>No posts for this model yet.</Text>
               <Text style={styles.emptySubtext}>Be the first to share your experience.</Text>
             </View>
           )
@@ -130,42 +162,61 @@ export default function VehicleScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, marginTop: 40 },
-  header: {
-    flexDirection: 'row',
+  container: { flex: 1, backgroundColor: C.bg },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#e5e5e5',
-    gap: 8,
+    padding: 32,
+    marginTop: 40,
+    gap: 10,
   },
-  backButton: { paddingRight: 4 },
-  backText: { fontSize: 26, color: '#000', lineHeight: 28 },
-  modelName: { flex: 1, fontSize: 17, fontWeight: '700', color: '#111' },
-  followButton: {
+  followBtn: {
     borderWidth: 1,
-    borderColor: '#000',
+    borderColor: C.accent,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 6,
+    minWidth: 80,
+    alignItems: 'center',
   },
-  followButtonActive: { backgroundColor: '#000' },
-  followButtonText: { fontSize: 13, fontWeight: '600', color: '#000' },
-  followButtonTextActive: { color: '#fff' },
+  followBtnActive: {
+    backgroundColor: C.accent,
+    borderColor: C.accent,
+  },
+  followBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: C.accent,
+  },
+  followBtnTextActive: {
+    color: '#fff',
+  },
   postPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
     margin: 12,
-    padding: 12,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 8,
+    padding: 14,
+    backgroundColor: C.surface,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: C.border,
+    gap: 8,
   },
-  postPromptText: { color: '#888', fontSize: 14 },
-  backLink: { color: '#0066cc', fontSize: 15, marginBottom: 12 },
-  notFound: { color: '#888', fontSize: 14 },
-  errorText: { color: '#d00', fontSize: 14 },
-  emptyText: { color: '#555', fontSize: 15, fontWeight: '500', marginBottom: 6 },
-  emptySubtext: { color: '#aaa', fontSize: 13 },
+  postPromptText: {
+    flex: 1,
+    color: C.textFaint,
+    fontSize: 14,
+  },
+  notFound: { color: C.textMuted, fontSize: 15 },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  backBtnText: { color: C.accent, fontSize: 14 },
+  errorText: { color: '#F87171', fontSize: 14 },
+  emptyText: { color: C.text, fontSize: 15, fontWeight: '600' },
+  emptySubtext: { color: C.textMuted, fontSize: 13 },
 });

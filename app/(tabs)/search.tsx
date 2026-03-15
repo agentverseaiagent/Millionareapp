@@ -12,9 +12,21 @@ import { useVehicleSearch } from '../../src/features/vehicles/hooks';
 import { VehicleModelItem } from '../../src/components/VehicleModelItem';
 import type { VehicleSearchResult } from '../../src/features/vehicles/types';
 
+const C = {
+  bg: '#0F0F0F',
+  surface: '#1A1A1A',
+  border: '#262626',
+  accent: '#E05A00',
+  text: '#F0F0F0',
+  textMuted: '#888',
+  inputBg: '#1A1A1A',
+};
+
+const HINT_EXAMPLES = ['honda', 'crv', 'honda crv', 'nissan', 'rogue', 'mazda', 'cx5', 'cx-5'];
+
 export default function SearchScreen() {
   const [query, setQuery] = useState('');
-  const { results, loading, error, search } = useVehicleSearch();
+  const { results, loading, search } = useVehicleSearch();
   const router = useRouter();
 
   const handleChange = useCallback((text: string) => {
@@ -28,22 +40,43 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Search car model (e.g. CR-V, Tacoma, Model 3)"
-        placeholderTextColor="#aaa"
-        value={query}
-        onChangeText={handleChange}
-        autoCapitalize="none"
-        autoCorrect={false}
-        clearButtonMode="while-editing"
-      />
+      <View style={styles.searchBar}>
+        <TextInput
+          style={styles.input}
+          placeholder="Search makes and models…"
+          placeholderTextColor={C.textMuted}
+          value={query}
+          onChangeText={handleChange}
+          autoCapitalize="none"
+          autoCorrect={false}
+          clearButtonMode="while-editing"
+          returnKeyType="search"
+        />
+      </View>
+
       {loading && (
         <View style={styles.loadingRow}>
-          <ActivityIndicator size="small" />
+          <ActivityIndicator size="small" color={C.accent} />
         </View>
       )}
-      {error && <Text style={styles.error}>{error}</Text>}
+
+      {!query && !loading && (
+        <View style={styles.hintSection}>
+          <Text style={styles.hintTitle}>Try searching</Text>
+          <View style={styles.hintPills}>
+            {HINT_EXAMPLES.map(ex => (
+              <Text
+                key={ex}
+                style={styles.hintPill}
+                onPress={() => handleChange(ex)}
+              >
+                {ex}
+              </Text>
+            ))}
+          </View>
+        </View>
+      )}
+
       <FlatList
         data={results}
         keyExtractor={item => item.id}
@@ -52,7 +85,7 @@ export default function SearchScreen() {
         ListEmptyComponent={
           query.length > 0 && !loading ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>No models found for "{query}"</Text>
+              <Text style={styles.emptyText}>No results for "{query}"</Text>
             </View>
           ) : null
         }
@@ -64,34 +97,63 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: C.bg,
+  },
+  searchBar: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
   input: {
-    margin: 12,
+    backgroundColor: C.inputBg,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
+    borderColor: C.border,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     fontSize: 16,
-    color: '#111',
-    backgroundColor: '#fafafa',
+    color: C.text,
   },
   loadingRow: {
-    paddingVertical: 8,
+    paddingVertical: 12,
     alignItems: 'center',
   },
-  error: {
-    color: '#d00',
-    fontSize: 14,
-    textAlign: 'center',
-    padding: 12,
+  hintSection: {
+    paddingHorizontal: 16,
+    paddingTop: 24,
+  },
+  hintTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: C.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 12,
+  },
+  hintPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  hintPill: {
+    backgroundColor: '#1E1E1E',
+    color: C.accent,
+    fontSize: 13,
+    fontWeight: '500',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2E2E2E',
+    overflow: 'hidden',
   },
   empty: {
-    padding: 24,
+    padding: 32,
     alignItems: 'center',
   },
   emptyText: {
-    color: '#888',
+    color: C.textMuted,
     fontSize: 14,
   },
 });

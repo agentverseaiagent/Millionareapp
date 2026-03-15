@@ -7,9 +7,22 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { signUp } from '../../src/features/auth/api';
+
+const C = {
+  bg: '#0A0A0A',
+  surface: '#181818',
+  border: '#2A2A2A',
+  accent: '#E05A00',
+  text: '#F0F0F0',
+  textMuted: '#888',
+  error: '#F87171',
+  success: '#34D399',
+};
 
 function parseSignUpError(message: string): string {
   const m = message.toLowerCase();
@@ -30,15 +43,14 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
 
   async function handleSignUp() {
     setError(null);
-    setMessage(null);
     setLoading(true);
     try {
       await signUp(email.trim(), password);
-      setMessage('Check your email to confirm your account.');
+      setSent(true);
     } catch (err: any) {
       setError(parseSignUpError(err.message ?? 'Something went wrong.'));
     } finally {
@@ -46,48 +58,74 @@ export default function SignUpScreen() {
     }
   }
 
+  if (sent) {
+    return (
+      <View style={styles.successContainer}>
+        <Ionicons name="mail-outline" size={48} color={C.accent} />
+        <Text style={styles.successTitle}>Check your email</Text>
+        <Text style={styles.successBody}>
+          We sent a confirmation link to{'\n'}
+          <Text style={{ color: C.text }}>{email}</Text>
+        </Text>
+        <Text style={styles.successHint}>
+          Click the link in the email to activate your account.
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.appName}>Garagetwits</Text>
-      <Text style={styles.appSubtitle}>Car communities by model</Text>
+      <View style={styles.header}>
+        <Text style={styles.appName}>Garagetwits</Text>
+        <Text style={styles.appTagline}>Car communities by model</Text>
+      </View>
 
-      <Text style={styles.title}>Create Account</Text>
+      <View style={styles.form}>
+        <Text style={styles.formTitle}>Create Account</Text>
 
-      {error && <Text style={styles.error}>{error}</Text>}
-      {message && <Text style={styles.message}>{message}</Text>}
-
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#999"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#999"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      <TouchableOpacity style={styles.button} onPress={handleSignUp} disabled={loading}>
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Create Account</Text>
+        {error && (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
         )}
-      </TouchableOpacity>
 
-      <Link href="/(auth)/sign-in" style={styles.link}>
-        Already have an account? Sign in
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor={C.textMuted}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Password (min 6 characters)"
+          placeholderTextColor={C.textMuted}
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonLoading]}
+          onPress={handleSignUp}
+          disabled={loading}
+        >
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.buttonText}>Create Account</Text>
+          }
+        </TouchableOpacity>
+      </View>
+
+      <Link href="/(auth)/sign-in" style={styles.switchLink}>
+        Already have an account? <Text style={styles.switchLinkAccent}>Sign in</Text>
       </Link>
     </KeyboardAvoidingView>
   );
@@ -98,59 +136,106 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#fff',
+    backgroundColor: C.bg,
+  },
+  header: {
+    marginBottom: 40,
   },
   appName: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '800',
     letterSpacing: -0.5,
+    color: C.text,
     marginBottom: 4,
   },
-  appSubtitle: {
+  appTagline: {
     fontSize: 14,
-    color: '#888',
-    marginBottom: 36,
+    color: C.textMuted,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
+  form: {
+    backgroundColor: C.surface,
+    borderRadius: 14,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: C.border,
     marginBottom: 20,
   },
-  input: {
+  formTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: C.text,
+    marginBottom: 18,
+  },
+  errorBox: {
+    backgroundColor: '#2E0A0A',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#5A1A1A',
+  },
+  errorText: {
+    color: C.error,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  input: {
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: C.border,
     borderRadius: 8,
     padding: 14,
     marginBottom: 12,
     fontSize: 16,
-    color: '#000',
+    color: C.text,
   },
   button: {
-    backgroundColor: '#000',
+    backgroundColor: C.accent,
     borderRadius: 8,
-    padding: 16,
+    padding: 15,
     alignItems: 'center',
     marginTop: 4,
   },
+  buttonLoading: { opacity: 0.7 },
   buttonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  switchLink: {
+    textAlign: 'center',
+    color: C.textMuted,
+    fontSize: 14,
+  },
+  switchLinkAccent: {
+    color: C.accent,
     fontWeight: '600',
   },
-  error: {
-    color: '#d00',
-    marginBottom: 12,
-    fontSize: 14,
+  successContainer: {
+    flex: 1,
+    backgroundColor: C.bg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    gap: 14,
   },
-  message: {
-    color: '#080',
-    marginBottom: 12,
-    fontSize: 14,
-  },
-  link: {
-    marginTop: 20,
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: C.text,
     textAlign: 'center',
-    color: '#555',
-    fontSize: 14,
+  },
+  successBody: {
+    fontSize: 15,
+    color: C.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  successHint: {
+    fontSize: 13,
+    color: C.textMuted,
+    textAlign: 'center',
+    lineHeight: 19,
+    marginTop: 4,
   },
 });

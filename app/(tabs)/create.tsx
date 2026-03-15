@@ -10,12 +10,33 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { createPost } from '../../src/features/posts/api';
 import { POST_CATEGORIES } from '../../src/features/posts/types';
 import type { PostCategory } from '../../src/features/posts/types';
-import { searchVehicleModels } from '../../src/features/vehicles/api';
+import { searchVehicles } from '../../src/features/vehicles/api';
 import type { VehicleSearchResult } from '../../src/features/vehicles/types';
+
+const C = {
+  bg: '#0F0F0F',
+  surface: '#1A1A1A',
+  border: '#262626',
+  accent: '#E05A00',
+  text: '#F0F0F0',
+  textMuted: '#888',
+  textFaint: '#555',
+  inputBg: '#141414',
+};
+
+const CATEGORY_ACCENT: Record<PostCategory, string> = {
+  price_paid:    '#34D399',
+  lease_finance: '#60A5FA',
+  issue:         '#F87171',
+  maintenance:   '#FBBF24',
+  review:        '#A78BFA',
+  question:      '#9CA3AF',
+};
 
 const MAX_BODY = 500;
 
@@ -39,7 +60,7 @@ export default function CreateScreen() {
     }
     setSearchingModel(true);
     try {
-      setModelResults(await searchVehicleModels(text));
+      setModelResults(await searchVehicles(text));
     } catch {
       setModelResults([]);
     } finally {
@@ -55,7 +76,7 @@ export default function CreateScreen() {
 
   const handleSubmit = useCallback(async () => {
     if (!body.trim()) {
-      setError('Post body is required.');
+      setError('Write something before posting.');
       return;
     }
     setError(null);
@@ -78,78 +99,108 @@ export default function CreateScreen() {
     }
   }, [body, selectedModel, category, router]);
 
+  const charsLeft = MAX_BODY - body.length;
+  const canPost = body.trim().length > 0 && !submitting;
+
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.label}>Post</Text>
+
+        {/* Body input */}
         <TextInput
           style={styles.bodyInput}
-          placeholder="Share your experience, question, or insight..."
-          placeholderTextColor="#aaa"
+          placeholder="Share your experience, question, or insight…"
+          placeholderTextColor={C.textFaint}
           value={body}
           onChangeText={setBody}
           multiline
           maxLength={MAX_BODY}
           textAlignVertical="top"
+          autoFocus
         />
-        <Text style={styles.charCount}>{body.length}/{MAX_BODY}</Text>
+        <Text style={[styles.charCount, charsLeft < 50 && styles.charCountWarning]}>
+          {charsLeft}
+        </Text>
 
-        <Text style={styles.label}>Vehicle (optional)</Text>
+        {/* Divider */}
+        <View style={styles.divider} />
+
+        {/* Vehicle picker */}
+        <Text style={styles.sectionLabel}>Vehicle</Text>
         {selectedModel ? (
           <View style={styles.selectedModel}>
-            <Text style={styles.selectedModelText}>{selectedModel.display_name}</Text>
-            <TouchableOpacity onPress={() => { setSelectedModel(null); setModelQuery(''); }}>
-              <Text style={styles.clearModel}>✕</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.selectedMake}>{selectedModel.make_name}</Text>
+              <Text style={styles.selectedModelName}>{selectedModel.name}</Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => { setSelectedModel(null); setModelQuery(''); }}
+            >
+              <Ionicons name="close-circle" size={22} color={C.textMuted} />
             </TouchableOpacity>
           </View>
         ) : (
           <>
             <TextInput
-              style={styles.input}
-              placeholder="Search for a car model..."
-              placeholderTextColor="#aaa"
+              style={styles.searchInput}
+              placeholder="Search make or model (optional)…"
+              placeholderTextColor={C.textFaint}
               value={modelQuery}
               onChangeText={handleModelSearch}
               autoCapitalize="none"
               autoCorrect={false}
             />
-            {searchingModel && <ActivityIndicator size="small" style={styles.smallLoader} />}
-            {modelResults.map(item => (
+            {searchingModel && (
+              <ActivityIndicator size="small" color={C.accent} style={styles.smallLoader} />
+            )}
+            {modelResults.slice(0, 6).map(item => (
               <TouchableOpacity
                 key={item.id}
                 style={styles.modelOption}
                 onPress={() => handleSelectModel(item)}
               >
-                <Text style={styles.modelOptionText}>{item.display_name}</Text>
+                <Text style={styles.modelOptionMake}>{item.make_name}</Text>
+                <Text style={styles.modelOptionName}>{item.name}</Text>
               </TouchableOpacity>
             ))}
           </>
         )}
 
-        <Text style={styles.label}>Category (optional)</Text>
-        <View style={styles.categoryRow}>
-          {POST_CATEGORIES.map(cat => (
-            <TouchableOpacity
-              key={cat.value}
-              style={[styles.chip, category === cat.value && styles.chipActive]}
-              onPress={() => setCategory(category === cat.value ? null : cat.value)}
-            >
-              <Text style={[styles.chipText, category === cat.value && styles.chipTextActive]}>
-                {cat.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        {/* Divider */}
+        <View style={styles.divider} />
+
+        {/* Category */}
+        <Text style={styles.sectionLabel}>Category</Text>
+        <View style={styles.categoryGrid}>
+          {POST_CATEGORIES.map(cat => {
+            const active = category === cat.value;
+            const color = CATEGORY_ACCENT[cat.value];
+            return (
+              <TouchableOpacity
+                key={cat.value}
+                style={[
+                  styles.chip,
+                  active && { borderColor: color, backgroundColor: `${color}18` },
+                ]}
+                onPress={() => setCategory(category === cat.value ? null : cat.value)}
+              >
+                <Text style={[styles.chipText, active && { color }]}>
+                  {cat.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {error && <Text style={styles.error}>{error}</Text>}
 
         <TouchableOpacity
-          style={[styles.submitButton, (!body.trim() || submitting) && styles.submitButtonDisabled]}
+          style={[styles.submitButton, !canPost && styles.submitButtonDisabled]}
           onPress={handleSubmit}
-          disabled={!body.trim() || submitting}
+          disabled={!canPost}
         >
           {submitting
             ? <ActivityIndicator color="#fff" />
@@ -162,85 +213,129 @@ export default function CreateScreen() {
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#0F0F0F' },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: C.bg,
     padding: 16,
   },
-  label: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 6,
-    marginTop: 20,
-  },
   bodyInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#111',
-    minHeight: 120,
+    fontSize: 17,
+    color: C.text,
+    minHeight: 130,
+    lineHeight: 25,
+    paddingTop: 4,
   },
   charCount: {
     fontSize: 12,
-    color: '#aaa',
+    color: C.textFaint,
     textAlign: 'right',
-    marginTop: 4,
+    marginBottom: 4,
   },
-  input: {
+  charCountWarning: {
+    color: '#F87171',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: C.border,
+    marginVertical: 16,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: C.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+    marginBottom: 10,
+  },
+  searchInput: {
+    backgroundColor: C.inputBg,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: C.border,
     borderRadius: 8,
     padding: 12,
     fontSize: 15,
-    color: '#111',
+    color: C.text,
   },
-  smallLoader: { marginTop: 8 },
+  smallLoader: { marginTop: 10 },
   modelOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#eee',
+    paddingVertical: 11,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
-  modelOptionText: { fontSize: 15, color: '#111' },
+  modelOptionMake: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: C.accent,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  modelOptionName: {
+    fontSize: 15,
+    color: C.text,
+  },
   selectedModel: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f3f3',
+    backgroundColor: C.surface,
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: C.border,
   },
-  selectedModelText: { flex: 1, fontSize: 15, color: '#111', fontWeight: '500' },
-  clearModel: { fontSize: 16, color: '#888', paddingLeft: 8 },
-  categoryRow: {
+  selectedMake: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: C.accent,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  selectedModelName: {
+    fontSize: 15,
+    color: C.text,
+    fontWeight: '600',
+  },
+  categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
   chip: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: C.border,
     borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
-  chipActive: { backgroundColor: '#000', borderColor: '#000' },
-  chipText: { fontSize: 13, color: '#555' },
-  chipTextActive: { color: '#fff' },
-  error: { color: '#d00', fontSize: 14, marginTop: 12 },
+  chipText: {
+    fontSize: 13,
+    color: C.textMuted,
+    fontWeight: '500',
+  },
+  error: {
+    color: '#F87171',
+    fontSize: 14,
+    marginTop: 14,
+  },
   submitButton: {
-    backgroundColor: '#000',
-    borderRadius: 8,
+    backgroundColor: C.accent,
+    borderRadius: 10,
     padding: 16,
     alignItems: 'center',
     marginTop: 28,
     marginBottom: 40,
   },
-  submitButtonDisabled: { backgroundColor: '#bbb' },
-  submitButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  submitButtonDisabled: {
+    backgroundColor: '#333',
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
 });

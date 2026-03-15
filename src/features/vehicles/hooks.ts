@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { searchVehicleModels } from './api';
+import { searchVehicles } from './api';
 import type { VehicleSearchResult } from './types';
 
 export function useVehicleSearch() {
@@ -15,8 +15,7 @@ export function useVehicleSearch() {
     setLoading(true);
     setError(null);
     try {
-      const data = await searchVehicleModels(query);
-      setResults(data);
+      setResults(await searchVehicles(query));
     } catch (err: any) {
       setError(err.message);
     } finally {
