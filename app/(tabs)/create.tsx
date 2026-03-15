@@ -11,7 +11,8 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useProfile, hasValidUsername } from '../../src/features/auth/hooks';
 import { createPost } from '../../src/features/posts/api';
 import { POST_CATEGORIES } from '../../src/features/posts/types';
 import type { PostCategory, PostVehicleAttachment } from '../../src/features/posts/types';
@@ -47,6 +48,10 @@ interface PickerState {
 
 export default function CreateScreen() {
   const router = useRouter();
+  const { profile, loading: profileLoading, refetch: refetchProfile } = useProfile();
+
+  useFocusEffect(useCallback(() => { refetchProfile(); }, [refetchProfile]));
+
   const params = useLocalSearchParams<{
     preMakeId?: string;
     preMakeName?: string;
@@ -405,9 +410,9 @@ export default function CreateScreen() {
         </TouchableOpacity>
         <Text style={styles.actionBarTitle}>New Post</Text>
         <TouchableOpacity
-          style={[styles.postBtn, !canPost && styles.postBtnDisabled]}
+          style={[styles.postBtn, (!canPost || !hasValidUsername(profile?.username)) && styles.postBtnDisabled]}
           onPress={handleSubmit}
-          disabled={!canPost}
+          disabled={!canPost || !hasValidUsername(profile?.username)}
         >
           {submitting
             ? <ActivityIndicator color="#fff" size="small" />
@@ -416,6 +421,25 @@ export default function CreateScreen() {
         </TouchableOpacity>
       </View>
 
+      {profileLoading ? (
+        <View style={styles.gateCenter}>
+          <ActivityIndicator color={C.accent} size="large" />
+        </View>
+      ) : !hasValidUsername(profile?.username) ? (
+        <View style={styles.usernameGate}>
+          <Ionicons name="person-circle-outline" size={52} color={C.textFaint} />
+          <Text style={styles.gateTitle}>Username required</Text>
+          <Text style={styles.gateBody}>
+            Set a username on your profile before you can post.
+          </Text>
+          <TouchableOpacity
+            style={styles.gateBtn}
+            onPress={() => router.replace('/(tabs)/profile')}
+          >
+            <Text style={styles.gateBtnText}>Go to Profile</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -525,6 +549,7 @@ export default function CreateScreen() {
           }
         </TouchableOpacity>
       </ScrollView>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -650,6 +675,25 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: C.text, width: 120,
   },
+
+  gateCenter: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  usernameGate: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 36,
+    gap: 14,
+  },
+  gateTitle: { fontSize: 18, fontWeight: '700', color: C.text, textAlign: 'center' },
+  gateBody: { fontSize: 14, color: C.textMuted, textAlign: 'center', lineHeight: 20 },
+  gateBtn: {
+    marginTop: 4,
+    backgroundColor: C.accent,
+    borderRadius: 10,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  gateBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16 },
   errorText: { color: '#F87171', fontSize: 14, flex: 1 },
