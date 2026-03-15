@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   FlatList,
   View,
@@ -40,69 +40,78 @@ export default function HomeScreen() {
 
   const followingEmpty = mode === 'following' && !followingFeed.loading && followingFeed.posts.length === 0;
 
-  return (
-    <View style={styles.container}>
-      {/* Feed mode toggle */}
-      <View style={styles.toggleRow}>
+  const toggle = (
+    <View style={styles.toggleRow}>
+      <TouchableOpacity
+        style={[styles.toggleBtn, mode === 'following' && styles.toggleBtnActive]}
+        onPress={() => setMode('following')}
+      >
+        <Text style={[styles.toggleText, mode === 'following' && styles.toggleTextActive]}>
+          Following
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.toggleBtn, mode === 'all' && styles.toggleBtnActive]}
+        onPress={() => setMode('all')}
+      >
+        <Text style={[styles.toggleText, mode === 'all' && styles.toggleTextActive]}>
+          All
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  let emptyComponent: React.ReactElement | null = null;
+  if (isLoading) {
+    emptyComponent = (
+      <View style={styles.center}>
+        <ActivityIndicator color={C.accent} size="large" />
+      </View>
+    );
+  } else if (active.error) {
+    emptyComponent = (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>{active.error}</Text>
+      </View>
+    );
+  } else if (followingEmpty) {
+    emptyComponent = (
+      <View style={styles.center}>
+        <Text style={styles.emptyTitle}>Your feed is empty</Text>
+        <Text style={styles.emptyBody}>Follow vehicle models to see posts here.</Text>
         <TouchableOpacity
-          style={[styles.toggleBtn, mode === 'following' && styles.toggleBtnActive]}
-          onPress={() => setMode('following')}
+          style={styles.discoverButton}
+          onPress={() => router.push('/(tabs)/search')}
         >
-          <Text style={[styles.toggleText, mode === 'following' && styles.toggleTextActive]}>
-            Following
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.toggleBtn, mode === 'all' && styles.toggleBtnActive]}
-          onPress={() => setMode('all')}
-        >
-          <Text style={[styles.toggleText, mode === 'all' && styles.toggleTextActive]}>
-            All
-          </Text>
+          <Text style={styles.discoverButtonText}>Discover Models</Text>
         </TouchableOpacity>
       </View>
+    );
+  } else {
+    emptyComponent = (
+      <View style={styles.center}>
+        <Text style={styles.emptyBody}>No posts yet. Be the first to post.</Text>
+      </View>
+    );
+  }
 
-      {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={C.accent} size="large" />
-        </View>
-      ) : active.error ? (
-        <View style={styles.center}>
-          <Text style={styles.errorText}>{active.error}</Text>
-        </View>
-      ) : followingEmpty ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyTitle}>Your feed is empty</Text>
-          <Text style={styles.emptyBody}>
-            Follow vehicle models to see posts here.
-          </Text>
-          <TouchableOpacity
-            style={styles.discoverButton}
-            onPress={() => router.push('/(tabs)/search')}
-          >
-            <Text style={styles.discoverButtonText}>Discover Models</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={active.posts}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => <PostCard post={item} showModel />}
-          refreshControl={
-            <RefreshControl
-              refreshing={active.loading}
-              onRefresh={handleRefresh}
-              tintColor={C.accent}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.center}>
-              <Text style={styles.emptyBody}>No posts yet. Be the first to post.</Text>
-            </View>
-          }
-          contentContainerStyle={active.posts.length === 0 ? styles.emptyList : undefined}
-        />
-      )}
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={active.posts}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => <PostCard post={item} showModel />}
+        ListHeaderComponent={toggle}
+        ListEmptyComponent={emptyComponent}
+        contentContainerStyle={active.posts.length === 0 ? styles.emptyList : undefined}
+        refreshControl={
+          <RefreshControl
+            refreshing={active.loading}
+            onRefresh={handleRefresh}
+            tintColor={C.accent}
+          />
+        }
+      />
     </View>
   );
 }
