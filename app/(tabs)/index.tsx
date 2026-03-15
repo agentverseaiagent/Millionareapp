@@ -137,6 +137,15 @@ export default function HomeScreen() {
         contentContainerStyle={active.posts.length === 0 ? styles.emptyList : styles.listContent}
         alwaysBounceVertical
         overScrollMode="always"
+        onEndReached={() => active.loadMore?.()}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={
+          active.loadingMore ? (
+            <View style={styles.footerLoader}>
+              <ActivityIndicator color={C.accent} size="small" />
+            </View>
+          ) : null
+        }
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -232,5 +241,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '700',
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: 'center',
   },
 });

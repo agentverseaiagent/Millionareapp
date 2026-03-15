@@ -1,17 +1,26 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getGlobalFeed, getFollowingFeed, getModelFeed } from './api';
 import type { Post } from './types';
+
+const PAGE_SIZE = 20;
 
 export function useGlobalFeed() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const offsetRef = useRef(0);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
+    offsetRef.current = 0;
     try {
-      setPosts(await getGlobalFeed());
+      const data = await getGlobalFeed(PAGE_SIZE, 0);
+      setPosts(data);
+      setHasMore(data.length === PAGE_SIZE);
+      offsetRef.current = data.length;
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -19,21 +28,43 @@ export function useGlobalFeed() {
     }
   }, []);
 
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const data = await getGlobalFeed(PAGE_SIZE, offsetRef.current);
+      setPosts(prev => [...prev, ...data]);
+      setHasMore(data.length === PAGE_SIZE);
+      offsetRef.current += data.length;
+    } catch {
+      // ignore — user can pull-to-refresh
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore]);
+
   useEffect(() => { refresh(); }, [refresh]);
 
-  return { posts, loading, error, refresh };
+  return { posts, loading, loadingMore, hasMore, error, refresh, loadMore };
 }
 
 export function useFollowingFeed() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const offsetRef = useRef(0);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
+    offsetRef.current = 0;
     try {
-      setPosts(await getFollowingFeed());
+      const data = await getFollowingFeed(PAGE_SIZE, 0);
+      setPosts(data);
+      setHasMore(data.length === PAGE_SIZE);
+      offsetRef.current = data.length;
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -41,9 +72,24 @@ export function useFollowingFeed() {
     }
   }, []);
 
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const data = await getFollowingFeed(PAGE_SIZE, offsetRef.current);
+      setPosts(prev => [...prev, ...data]);
+      setHasMore(data.length === PAGE_SIZE);
+      offsetRef.current += data.length;
+    } catch {
+      // ignore — user can pull-to-refresh
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore]);
+
   useEffect(() => { refresh(); }, [refresh]);
 
-  return { posts, loading, error, refresh };
+  return { posts, loading, loadingMore, hasMore, error, refresh, loadMore };
 }
 
 export function useModelFeed(vehicleModelId: string | null) {

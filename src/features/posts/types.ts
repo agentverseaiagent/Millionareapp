@@ -30,6 +30,7 @@ export const CATEGORY_LABELS: Record<PostCategory, string> = {
 export interface Post {
   id: string;
   author_id: string;
+  author?: { id: string; username: string | null } | null;
   vehicle_make_id: string | null;
   vehicle_model_id: string | null;
   vehicle_trim_id: string | null;

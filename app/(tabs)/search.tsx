@@ -5,11 +5,13 @@ import {
   FlatList,
   StyleSheet,
   Text,
+  TouchableOpacity,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { useVehicleSearch } from '../../src/features/vehicles/hooks';
 import { followMake, unfollowMake, getFollowedMakes } from '../../src/features/vehicles/api';
 import { VehicleModelItem } from '../../src/components/VehicleModelItem';
@@ -31,6 +33,7 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const { results, loading, search } = useVehicleSearch();
   const router = useRouter();
+  const navigation = useNavigation();
 
   // Set of make IDs the user is currently following
   const [followedMakeIds, setFollowedMakeIds] = useState<Set<string>>(new Set());
@@ -42,6 +45,24 @@ export default function SearchScreen() {
       .then(makes => setFollowedMakeIds(new Set(makes.map(m => m.id))))
       .catch(() => {});
   }, []);
+
+  // Show Cancel button in header when query is active
+  useEffect(() => {
+    if (query.length > 0) {
+      navigation.setOptions({
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => { setQuery(''); search(''); }}
+            style={{ paddingHorizontal: 14 }}
+          >
+            <Text style={{ color: '#E05A00', fontSize: 15, fontWeight: '600' }}>Cancel</Text>
+          </TouchableOpacity>
+        ),
+      });
+    } else {
+      navigation.setOptions({ headerRight: undefined });
+    }
+  }, [query, navigation, search]);
 
   const handleChange = useCallback((text: string) => {
     setQuery(text);

@@ -4,6 +4,7 @@ import type { Post, CreatePostInput, PostComment } from './types';
 const POST_SELECT = `
   id, author_id, vehicle_make_id, vehicle_model_id, vehicle_trim_id, vehicle_year,
   body, category, created_at,
+  author:profiles!author_id(id, username),
   vehicle_model:vehicle_models(
     id, name, slug,
     vehicle_makes(id, name)
@@ -100,6 +101,17 @@ export async function createComment(postId: string, body: string): Promise<PostC
 export async function deletePost(postId: string): Promise<void> {
   const { error } = await supabase.from('posts').delete().eq('id', postId);
   if (error) throw error;
+}
+
+export async function getPostsByAuthor(authorId: string, limit = 50, offset = 0): Promise<Post[]> {
+  const { data, error } = await supabase
+    .from('posts')
+    .select(POST_SELECT)
+    .eq('author_id', authorId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+  if (error) throw error;
+  return (data || []) as unknown as Post[];
 }
 
 export async function createPost(input: CreatePostInput): Promise<Post> {

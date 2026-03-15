@@ -89,6 +89,11 @@ export function PostCard({ post, showModel = true, currentUserId, onDelete }: Pr
         </View>
       </View>
 
+      {/* Author */}
+      {post.author?.username && (
+        <Text style={styles.author}>@{post.author.username}</Text>
+      )}
+
       {/* Body */}
       <Text style={styles.body}>{post.body}</Text>
 
@@ -146,6 +151,12 @@ const styles = StyleSheet.create({
   },
   deleteBtn: {
     padding: 2,
+  },
+  author: {
+    fontSize: 12,
+    color: C.textMuted,
+    fontWeight: '500',
+    marginBottom: 4,
   },
   body: {
     fontSize: 15,
